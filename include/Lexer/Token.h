@@ -7,6 +7,7 @@
 enum TokenKind : short {
   Identifier,
   Number,
+  String,
   Colon,     // ":'
   Semicolon, // ";"
   Comma,     // ","
@@ -15,12 +16,36 @@ enum TokenKind : short {
   Minus, // "-"
   Star, // "*"
   Slash, // "/"
-  LParen, // "("
-  RParen, // ")"
+  Percent, // "%"
   Assign, // "="
 
+  Equal, // "=="
+  NotEqual, // "!="
+  Less, // "<"
+  LessEq, // "<="
+  Greater, // ">"
+  GreaterEq, // ">="
+
+  Or, // "||"
+  And, // "&&"
+
+  LParen, // "("
+  RParen, // ")"
+  LFigure, // "{"
+  RFigure, // "}"
+  LSquare, // "["
+  RSquare, // "]"
+
   // Keywords
-  IntegerKW,
+  KW_integer,
+  KW_if,
+  KW_else,
+  KW_for,
+  KW_while,
+  KW_return,
+  KW_bool,
+  KW_true,
+  KW_false,
 
   EOI, // End of input
   Unknown,
@@ -49,7 +74,7 @@ class Token {
     return is(K1) || is(K2);
   }
 
-  template <typename... Ts>
+  template<typename... Ts>
   bool isOneOf(TokenKind K1, TokenKind K2, Ts... Ks) const {
     return is(K1) || isOneOf(K2, Ks...);
   }

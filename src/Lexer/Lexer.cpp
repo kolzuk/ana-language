@@ -14,10 +14,18 @@ LLVM_READNONE inline bool isLetter(char c) {
 }
 }
 
-void Lexer::next(Token &token) {
-  while (*BufferPtr &&
-          charinfo::isWhitespace(*BufferPtr))
+void Lexer::next(Token& token) {
+  while (*BufferPtr && charinfo::isWhitespace(*BufferPtr))
     ++BufferPtr;
+
+  while (*BufferPtr == '#') { // skip comments
+    while (*BufferPtr && *BufferPtr != '\n') {
+      ++BufferPtr;
+    }
+    while (*BufferPtr && charinfo::isWhitespace(*BufferPtr)) {
+      ++BufferPtr;
+    }
+  }
 
   if (!*BufferPtr) {
     token.Kind = TokenKind::EOI;
@@ -25,51 +33,100 @@ void Lexer::next(Token &token) {
   }
 
   if (charinfo::isLetter(*BufferPtr)) {
-    const char *end = BufferPtr + 1;
-    while (charinfo::isLetter(*end))
+    const char* end = BufferPtr + 1;
+    while (charinfo::isLetter(*end) || charinfo::isDigit(*end) || *end == '_')
       ++end;
-
-    llvm::StringRef Name(BufferPtr, end - BufferPtr);
-
+    llvm::StringRef name(BufferPtr, end - BufferPtr);
     TokenKind kind;
-    if (Name == "integer") {
-      kind = TokenKind::IntegerKW;
+    if (name == "if") {
+      kind = TokenKind::KW_if;
+    } else if (name == "else") {
+      kind = TokenKind::KW_else;
+    } else if (name == "for") {
+      kind = TokenKind::KW_for;
+    } else if (name == "while") {
+      kind = TokenKind::KW_while;
+    } else if (name == "return") {
+      kind = TokenKind::KW_return;
+    } else if (name == "integer") {
+      kind = TokenKind::KW_integer;
+    } else if (name == "bool") {
+      kind = TokenKind::KW_bool;
+    } else if (name == "true") {
+      kind = TokenKind::KW_true;
+    } else if (name == "false") {
+      kind = TokenKind::KW_false;
     } else {
       kind = TokenKind::Identifier;
     }
-
     formToken(token, end, kind);
     return;
-  } else if (charinfo::isDigit(*BufferPtr)) {
-    const char *end = BufferPtr + 1;
+  }
+
+  if (charinfo::isDigit(*BufferPtr)) {
+    const char* end = BufferPtr + 1;
     while (charinfo::isDigit(*end))
       end++;
     formToken(token, end, TokenKind::Number);
     return;
+  }
+
+  if (*BufferPtr == '"') {
+    const char* end = BufferPtr + 1;
+    while (*end && *end != '"')
+      ++end;
+    if (*end == '"') {
+      ++BufferPtr;
+      formToken(token, end, String);
+      BufferPtr = end + 1;
+    } else {
+      formToken(token, BufferPtr + 1, Unknown);
+    }
+    return;
+  }
+
+  if (*BufferPtr == '=' && *(BufferPtr + 1) == '=') {
+    formToken(token, BufferPtr + 2, Equal);
+  } else if (*BufferPtr == '<' && *(BufferPtr + 1) == '=') {
+    formToken(token, BufferPtr + 2, LessEq);
+  } else if (*BufferPtr == '>' && *(BufferPtr + 1) == '=') {
+    formToken(token, BufferPtr + 2, GreaterEq);
+  } else if (*BufferPtr == '!' && *(BufferPtr + 1) == '=') {
+    formToken(token, BufferPtr + 2, NotEqual);
+  } else if (*BufferPtr == '|' && *(BufferPtr + 1) == '|') {
+    formToken(token, BufferPtr + 2, Or);
+  } else if (*BufferPtr == '&' && *(BufferPtr + 1) == '&') {
+    formToken(token, BufferPtr + 2, And);
   } else {
     switch (*BufferPtr) {
 #define CASE(ch, tok) \
-    case ch: formToken(token, BufferPtr + 1, tok); break
-      CASE('+', TokenKind::Plus);
-      CASE('-', TokenKind::Minus);
-      CASE('*', TokenKind::Star);
-      CASE('/', TokenKind::Slash);
-      CASE('(', TokenKind::LParen);
-      CASE(')', TokenKind::RParen);
-      CASE(':', TokenKind::Colon);
-      CASE(',', TokenKind::Comma);
-      CASE(';', TokenKind::Semicolon);
-      CASE('=', TokenKind::Assign);
+case ch: formToken(token, BufferPtr + 1, tok); break
+      CASE('=', Assign);
+      CASE('+', Plus);
+      CASE('-', Minus);
+      CASE('*', Star);
+      CASE('/', Slash);
+      CASE('%', Percent);
+      CASE('<', Less);
+      CASE('>', Greater);
+      CASE('(', LParen);
+      CASE(')', RParen);
+      CASE('{', LFigure);
+      CASE('}', RFigure);
+      CASE('[', LSquare);
+      CASE(']', RSquare);
+      CASE(',', Comma);
+      CASE(':', Colon);
+      CASE(';', Semicolon);
 #undef CASE
-      default:
-        formToken(token, BufferPtr + 1, TokenKind::Unknown);
+      default:formToken(token, BufferPtr + 1, Unknown);
     }
     return;
   }
 }
 
-void Lexer::formToken(Token &Result,
-                      const char *TokEnd,
+void Lexer::formToken(Token& Result,
+                      const char* TokEnd,
                       TokenKind Kind) {
   Result.Kind = Kind;
   Result.Text = llvm::StringRef(BufferPtr, TokEnd - BufferPtr);

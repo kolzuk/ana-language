@@ -17,7 +17,7 @@ AST *Parser::parseStatementsSequence() {
 }
 
 AST *Parser::parseStatement() {
-  if (Tok.is(TokenKind::IntegerKW)) {
+  if (Tok.is(TokenKind::KW_integer)) {
     nextToken();
     llvm::StringRef Identifier = Tok.getText();
     nextToken();
