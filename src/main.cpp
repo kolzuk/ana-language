@@ -30,7 +30,6 @@ int main(int argc, const char **argv) {
     return 1;
   }
 
-  CodeGen CodeGenerator;
   CodeGen::compile(Tree);
   return 0;
 }

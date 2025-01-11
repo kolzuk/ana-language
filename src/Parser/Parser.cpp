@@ -50,9 +50,28 @@ _error:
 AST *Parser::parseExpr() {
   AST *Left = parseTerm();
 
-  while (Tok.isOneOf(TokenKind::Plus, TokenKind::Minus)) {
-    BinaryOp::Operator Op =
-        Tok.is(TokenKind::Plus) ? BinaryOp::Plus : BinaryOp::Minus;
+  while (Tok.isOneOf(TokenKind::Plus,
+                     TokenKind::Minus,
+                     TokenKind::Star,
+                     TokenKind::Slash,
+                     TokenKind::Assign)) {
+    BinaryOp::Operator Op = BinaryOp::Div;
+    switch (Tok.getKind()) {
+      case (TokenKind::Plus):
+        Op = BinaryOp::Plus;
+        break;
+      case (TokenKind::Minus):
+        Op = BinaryOp::Plus;
+        break;
+      case (TokenKind::Star):
+        Op = BinaryOp::Mul;
+        break;
+      case (TokenKind::Slash):
+        Op = BinaryOp::Div;
+        break;
+      default:
+        error();
+    }
 
     nextToken();
 
