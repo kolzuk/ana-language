@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.28.1)
 project("ana_language")
 
 set(CMAKE_CXX_STANDARD 17)
 
 # У меня здесь иначе не запускалось без этого. Необходимо починить.
-# Необходимо указать нужной путь до LLVM нужной версии
+# Необходимо указать нужный путь до LLVM нужной версии
 set(LLVM_DIR "/opt/homebrew/opt/llvm@17/lib/cmake/llvm")
 find_package(LLVM 17 REQUIRED CONFIG)
 
