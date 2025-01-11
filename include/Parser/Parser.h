@@ -8,7 +8,7 @@
 #include "Lexer/Lexer.h"
 
 class Parser {
-  Lexer &Lex;
+  Lexer& Lex;
   Token Tok;
   bool HasError;
 
@@ -35,19 +35,19 @@ class Parser {
     return false;
   }
 
-  AST *parseStatementsSequence();
-  AST *parseStatement();
-  AST *parseExpr();
-  AST *parseTerm();
-  AST *parseFactor();
+  AST* parseStatementsSequence();
+  AST* parseStatement();
+  AST* parseExpr();
+  AST* parseTerm();
+  AST* parseFactor();
 
  public:
-  explicit Parser(Lexer &Lex) : Lex(Lex), HasError(false) {
+  explicit Parser(Lexer& Lex) : Lex(Lex), HasError(false) {
     nextToken();
   }
 
   [[nodiscard]] bool hasError() const { return HasError; }
-  AST *parse();
+  AST* parse();
 };
 
 #endif //PARSER_H

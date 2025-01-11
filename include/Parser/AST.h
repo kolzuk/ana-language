@@ -7,7 +7,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 
-
 class AST;
 class StatementsSequence;
 class Statement;
@@ -18,28 +17,28 @@ class BinaryOp;
 
 class ASTVisitor {
  public:
-  virtual void visit(AST &) {};
-  virtual void visit(StatementsSequence &) = 0;
-  virtual void visit(Statement &) {};
-  virtual void visit(Declaration &) = 0;
-  virtual void visit(Expr &) {};
-  virtual void visit(Factor &) = 0;
-  virtual void visit(BinaryOp &) = 0;
+  virtual void visit(AST&) {};
+  virtual void visit(StatementsSequence&) = 0;
+  virtual void visit(Statement&) {};
+  virtual void visit(Declaration&) = 0;
+  virtual void visit(Expr&) {};
+  virtual void visit(Factor&) = 0;
+  virtual void visit(BinaryOp&) = 0;
 };
 
 class AST {
  public:
   virtual ~AST() {}
-  virtual void accept(ASTVisitor &V) = 0;
+  virtual void accept(ASTVisitor& V) = 0;
 };
 
 class StatementsSequence : public AST {
-  using StatementsVector = llvm::SmallVector<AST *, 8>;
+  using StatementsVector = llvm::SmallVector<AST*, 8>;
   StatementsVector Statements;
  public:
   StatementsVector getStatements() { return Statements; }
   explicit StatementsSequence(StatementsVector Statements) : Statements(std::move(Statements)) {}
-  virtual void accept(ASTVisitor &V) override {
+  virtual void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -51,14 +50,14 @@ class Statement : public AST {
 
 class Declaration : public Statement {
   llvm::StringRef Identifier;
-  AST *E;
+  AST* E;
  public:
-  Declaration(llvm::StringRef Identifier, AST *E)
+  Declaration(llvm::StringRef Identifier, AST* E)
       : Identifier(Identifier), E(E) {
   }
   llvm::StringRef getIdentifier() { return Identifier; };
-  AST *getExpr() { return E; }
-  virtual void accept(ASTVisitor &V) override {
+  AST* getExpr() { return E; }
+  virtual void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -79,7 +78,7 @@ class Factor : public AST {
       : Kind(Kind), Val(Val) {}
   ValueKind getKind() { return Kind; }
   llvm::StringRef getVal() { return Val; }
-  virtual void accept(ASTVisitor &V) override {
+  virtual void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -88,16 +87,16 @@ class BinaryOp : public AST {
  public:
   enum Operator { Plus, Minus, Mul, Div };
  private:
-  AST *Left;
-  AST *Right;
+  AST* Left;
+  AST* Right;
   Operator Op;
  public:
-  BinaryOp(Operator Op, AST *L, AST *R)
+  BinaryOp(Operator Op, AST* L, AST* R)
       : Op(Op), Left(L), Right(R) {}
-  AST *getLeft() { return Left; }
-  AST *getRight() { return Right; }
+  AST* getLeft() { return Left; }
+  AST* getRight() { return Right; }
   Operator getOperator() { return Op; }
-  virtual void accept(ASTVisitor &V) override {
+  virtual void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
