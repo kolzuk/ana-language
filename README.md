@@ -18,9 +18,9 @@ int partition(int arr[], int l, int r) {
    int j = r;
    while (i <= j) {
      while (arr[i] < v)
-       i++;
+       i = i + 1;
      while (arr[j] > v)
-       j--;
+       j = j + 1;
      if (i >= j)
        break;
 
@@ -67,4 +67,58 @@ int *getPrimeNumbers(int n) {
 
 ## Грамматика языка:
 
-Необходимы следующие ключевые слова: `for`, `if`, `while`.
+```
+compilationUnit
+    : ( declaration )*
+declaration
+    : functionDeclaration | variableDeclaration
+variableDeclaration
+    : type identifier ("=" expression)? ";";
+functionDeclaration
+    : "fun" identifier "(" ( type identifier ( "," type identifier)* )? ")" "->" type "{" statementSequence "}"
+type
+    : "integer" | "array" "[" type "]"
+statementSequence
+    : (statement  ";" )*
+statement
+    : variableDeclaration
+    | assignStatement
+    | ifStatement 
+    | whileStatement 
+    | returnStatement
+    | forStatement 
+    | expression 
+    | "break" 
+    | "continue"
+assignStatement
+    : identifier ("[" expression "]")* ("=" expression)
+ifStatement
+    : "if" "(" expression ")" "{" statementSequence "}"
+    ( "else" "{" statementSequence "}" )?
+whileStatement
+    : "while" "(" expression ")" "{" statementSequence "}"
+forStatement
+    : "for" "(" (variableDeclaration | expression) ";" expression ";" expression ")" "{" statementSequence "}"
+returnStatement
+    : "return" ( expression )?
+expression
+    : simpleExpression (relation simpleExpression)?
+relation
+    : "==" | "!=" | "<" | "<=" | ">" | ">="
+simpleExpression
+    : ("+" | "-")? term (addOperator term)*
+addOperator
+    : "+" | "-"
+term
+    : factor (mulOperator factor)*
+mulOperator
+    : "*" | "/"
+factor
+    : integer_literal
+    | "(" expression ")"
+    | identifier ( "(" (expressionList)? ")"  | "[" expression "]")?
+identifier
+    : [a-zA-Z_][a-zA-Z0-9_]*
+integer_literal
+    : [0-9]+
+```
