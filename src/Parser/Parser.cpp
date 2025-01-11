@@ -1,13 +1,13 @@
 #include "Parser/Parser.h"
 
-AST *Parser::parse() {
+AST* Parser::parse() {
   return parseStatementsSequence();
 }
 
-AST *Parser::parseStatementsSequence() {
-  llvm::SmallVector<AST *, 8> Statements;
+AST* Parser::parseStatementsSequence() {
+  llvm::SmallVector<AST*, 8> Statements;
   while (!Tok.is(TokenKind::EOI)) {
-    AST *Statement = parseStatement();
+    AST* Statement = parseStatement();
     Statements.push_back(Statement);
   }
 
@@ -16,7 +16,7 @@ AST *Parser::parseStatementsSequence() {
   return new StatementsSequence(Statements);
 }
 
-AST *Parser::parseStatement() {
+AST* Parser::parseStatement() {
   if (Tok.is(TokenKind::KW_integer)) {
     nextToken();
     llvm::StringRef Identifier = Tok.getText();
@@ -25,14 +25,14 @@ AST *Parser::parseStatement() {
     if (consume(TokenKind::Assign))
       goto _error;
 
-    AST *E = parseExpr();
+    AST* E = parseExpr();
 
     if (consume(TokenKind::Semicolon))
       goto _error;
 
     return new Declaration(Identifier, E);
   } else {
-    AST *E = parseExpr();
+    AST* E = parseExpr();
 
     if (consume(TokenKind::Semicolon))
       goto _error;
@@ -40,15 +40,14 @@ AST *Parser::parseStatement() {
     return E;
   }
 
-_error:
-    while (!Tok.is(TokenKind::EOI))
-      nextToken();
-    return nullptr;
+  _error:
+  while (!Tok.is(TokenKind::EOI))
+    nextToken();
+  return nullptr;
 }
 
-
-AST *Parser::parseExpr() {
-  AST *Left = parseTerm();
+AST* Parser::parseExpr() {
+  AST* Left = parseTerm();
 
   while (Tok.isOneOf(TokenKind::Plus,
                      TokenKind::Minus,
@@ -57,33 +56,28 @@ AST *Parser::parseExpr() {
                      TokenKind::Assign)) {
     BinaryOp::Operator Op = BinaryOp::Div;
     switch (Tok.getKind()) {
-      case (TokenKind::Plus):
-        Op = BinaryOp::Plus;
+      case (TokenKind::Plus):Op = BinaryOp::Plus;
         break;
-      case (TokenKind::Minus):
-        Op = BinaryOp::Plus;
+      case (TokenKind::Minus):Op = BinaryOp::Plus;
         break;
-      case (TokenKind::Star):
-        Op = BinaryOp::Mul;
+      case (TokenKind::Star):Op = BinaryOp::Mul;
         break;
-      case (TokenKind::Slash):
-        Op = BinaryOp::Div;
+      case (TokenKind::Slash):Op = BinaryOp::Div;
         break;
-      default:
-        error();
+      default:error();
     }
 
     nextToken();
 
-    AST *Right = parseTerm();
+    AST* Right = parseTerm();
     Left = new BinaryOp(Op, Left, Right);
   }
 
   return Left;
 }
 
-AST *Parser::parseTerm() {
-  AST *Left = parseFactor();
+AST* Parser::parseTerm() {
+  AST* Left = parseFactor();
 
   while (Tok.isOneOf(TokenKind::Star, TokenKind::Slash)) {
     BinaryOp::Operator Op =
@@ -91,31 +85,27 @@ AST *Parser::parseTerm() {
 
     nextToken();
 
-    AST *Right = parseFactor();
+    AST* Right = parseFactor();
     Left = new BinaryOp(Op, Left, Right);
   }
 
   return Left;
 }
 
-AST *Parser::parseFactor() {
-  AST *Res = nullptr;
+AST* Parser::parseFactor() {
+  AST* Res = nullptr;
 
   switch (Tok.getKind()) {
-    case TokenKind::Number:
-      Res = new Factor(Factor::Number, Tok.getText());
+    case TokenKind::Number:Res = new Factor(Factor::Number, Tok.getText());
       nextToken();
       break;
-    case TokenKind::Identifier:
-      Res = new Factor(Factor::Ident, Tok.getText());
+    case TokenKind::Identifier:Res = new Factor(Factor::Ident, Tok.getText());
       nextToken();
       break;
-    case TokenKind::LParen:
-      nextToken();
+    case TokenKind::LParen:nextToken();
       Res = parseExpr();
       if (!consume(TokenKind::RParen)) break;
-    default:
-      if (!Res) error();
+    default:if (!Res) error();
 
       while (!Tok.isOneOf(TokenKind::RParen, TokenKind::Star,
                           TokenKind::Plus, TokenKind::Minus,

@@ -18,7 +18,7 @@ class ToIRVisitor : public ASTVisitor {
   PointerType* PtrTy;
   Constant* Int32Zero;
   Value* V;
-  StringMap<Value*> nameMap;
+  StringMap<Value*> NameMap;
  public:
   ToIRVisitor(Module* M) : M(M), Builder(M->getContext()) {
     VoidTy = Type::getVoidTy(M->getContext());
@@ -53,12 +53,12 @@ class ToIRVisitor : public ASTVisitor {
   virtual void visit(Declaration& Node) override {
     Node.getExpr()->accept(*this);
 
-    nameMap[Node.getIdentifier()] = V;
+    NameMap[Node.getIdentifier()] = V;
   }
 
   virtual void visit(Factor& Node) override {
     if (Node.getKind() == Factor::Ident) {
-      V = nameMap[Node.getVal()];
+      V = NameMap[Node.getVal()];
     } else {
       int intval;
       Node.getVal().getAsInteger(10, intval);
@@ -85,17 +85,17 @@ class ToIRVisitor : public ASTVisitor {
 };
 }
 
-void CodeGen::compile(AST* Tree, std::string& sourceFilename) {
+void CodeGen::compile(AST* Tree, std::string& SourceFilename) {
   LLVMContext Ctx;
-  auto* M = new Module(sourceFilename, Ctx);
+  auto* M = new Module(SourceFilename, Ctx);
   ToIRVisitor ToIR(M);
   ToIR.run(Tree);
 
-  auto outputFilename = sourceFilename + ".ll";
+  auto OutputFilename = SourceFilename + ".ll";
   std::error_code EC;
   sys::fs::OpenFlags OpenFlags = sys::fs::OF_None;
   auto Out = std::make_unique<llvm::ToolOutputFile>(
-      outputFilename, EC, OpenFlags);
+      OutputFilename, EC, OpenFlags);
   if (EC) {
     llvm::errs() << EC.message() << '\n';
     return;

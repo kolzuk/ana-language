@@ -8,20 +8,19 @@
 #include "Token.h"
 
 class Lexer {
-  const char *BufferStart;
-  const char *BufferPtr;
+  const char* BufferStart;
+  const char* BufferPtr;
 
  public:
-  explicit Lexer(const llvm::StringRef &Buffer) {
+  explicit Lexer(const llvm::StringRef& Buffer) {
     BufferStart = Buffer.begin();
-    BufferPtr   = BufferStart;
+    BufferPtr = BufferStart;
   }
 
-  void next(Token &token);
+  void next(Token& Token);
 
  private:
-  void formToken(Token &Result, const char *TokEnd, TokenKind Kind);
+  void formToken(Token& Result, const char* TokEnd, TokenKind Kind);
 };
-
 
 #endif //LEXER_H

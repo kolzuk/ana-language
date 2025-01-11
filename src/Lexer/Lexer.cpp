@@ -14,7 +14,7 @@ LLVM_READNONE inline bool isLetter(char c) {
 }
 }
 
-void Lexer::next(Token& token) {
+void Lexer::next(Token& Token) {
   while (*BufferPtr && charinfo::isWhitespace(*BufferPtr))
     ++BufferPtr;
 
@@ -28,79 +28,79 @@ void Lexer::next(Token& token) {
   }
 
   if (!*BufferPtr) {
-    token.Kind = TokenKind::EOI;
+    Token.Kind = TokenKind::EOI;
     return;
   }
 
   if (charinfo::isLetter(*BufferPtr)) {
-    const char* end = BufferPtr + 1;
-    while (charinfo::isLetter(*end) || charinfo::isDigit(*end) || *end == '_')
-      ++end;
-    llvm::StringRef name(BufferPtr, end - BufferPtr);
-    TokenKind kind;
-    if (name == "if") {
-      kind = TokenKind::KW_if;
-    } else if (name == "else") {
-      kind = TokenKind::KW_else;
-    } else if (name == "for") {
-      kind = TokenKind::KW_for;
-    } else if (name == "while") {
-      kind = TokenKind::KW_while;
-    } else if (name == "return") {
-      kind = TokenKind::KW_return;
-    } else if (name == "integer") {
-      kind = TokenKind::KW_integer;
-    } else if (name == "bool") {
-      kind = TokenKind::KW_bool;
-    } else if (name == "true") {
-      kind = TokenKind::KW_true;
-    } else if (name == "false") {
-      kind = TokenKind::KW_false;
+    const char* End = BufferPtr + 1;
+    while (charinfo::isLetter(*End) || charinfo::isDigit(*End) || *End == '_')
+      ++End;
+    llvm::StringRef Name(BufferPtr, End - BufferPtr);
+    TokenKind Kind;
+    if (Name == "if") {
+      Kind = TokenKind::KW_if;
+    } else if (Name == "else") {
+      Kind = TokenKind::KW_else;
+    } else if (Name == "for") {
+      Kind = TokenKind::KW_for;
+    } else if (Name == "while") {
+      Kind = TokenKind::KW_while;
+    } else if (Name == "return") {
+      Kind = TokenKind::KW_return;
+    } else if (Name == "integer") {
+      Kind = TokenKind::KW_integer;
+    } else if (Name == "bool") {
+      Kind = TokenKind::KW_bool;
+    } else if (Name == "true") {
+      Kind = TokenKind::KW_true;
+    } else if (Name == "false") {
+      Kind = TokenKind::KW_false;
     } else {
-      kind = TokenKind::Identifier;
+      Kind = TokenKind::Identifier;
     }
-    formToken(token, end, kind);
+    formToken(Token, End, Kind);
     return;
   }
 
   if (charinfo::isDigit(*BufferPtr)) {
-    const char* end = BufferPtr + 1;
-    while (charinfo::isDigit(*end))
-      end++;
-    formToken(token, end, TokenKind::Number);
+    const char* End = BufferPtr + 1;
+    while (charinfo::isDigit(*End))
+      End++;
+    formToken(Token, End, TokenKind::Number);
     return;
   }
 
   if (*BufferPtr == '"') {
-    const char* end = BufferPtr + 1;
-    while (*end && *end != '"')
-      ++end;
-    if (*end == '"') {
+    const char* End = BufferPtr + 1;
+    while (*End && *End != '"')
+      ++End;
+    if (*End == '"') {
       ++BufferPtr;
-      formToken(token, end, String);
-      BufferPtr = end + 1;
+      formToken(Token, End, String);
+      BufferPtr = End + 1;
     } else {
-      formToken(token, BufferPtr + 1, Unknown);
+      formToken(Token, BufferPtr + 1, Unknown);
     }
     return;
   }
 
   if (*BufferPtr == '=' && *(BufferPtr + 1) == '=') {
-    formToken(token, BufferPtr + 2, Equal);
+    formToken(Token, BufferPtr + 2, Equal);
   } else if (*BufferPtr == '<' && *(BufferPtr + 1) == '=') {
-    formToken(token, BufferPtr + 2, LessEq);
+    formToken(Token, BufferPtr + 2, LessEq);
   } else if (*BufferPtr == '>' && *(BufferPtr + 1) == '=') {
-    formToken(token, BufferPtr + 2, GreaterEq);
+    formToken(Token, BufferPtr + 2, GreaterEq);
   } else if (*BufferPtr == '!' && *(BufferPtr + 1) == '=') {
-    formToken(token, BufferPtr + 2, NotEqual);
+    formToken(Token, BufferPtr + 2, NotEqual);
   } else if (*BufferPtr == '|' && *(BufferPtr + 1) == '|') {
-    formToken(token, BufferPtr + 2, Or);
+    formToken(Token, BufferPtr + 2, Or);
   } else if (*BufferPtr == '&' && *(BufferPtr + 1) == '&') {
-    formToken(token, BufferPtr + 2, And);
+    formToken(Token, BufferPtr + 2, And);
   } else {
     switch (*BufferPtr) {
 #define CASE(ch, tok) \
-case ch: formToken(token, BufferPtr + 1, tok); break
+case ch: formToken(Token, BufferPtr + 1, tok); break
       CASE('=', Assign);
       CASE('+', Plus);
       CASE('-', Minus);
@@ -119,7 +119,7 @@ case ch: formToken(token, BufferPtr + 1, tok); break
       CASE(':', Colon);
       CASE(';', Semicolon);
 #undef CASE
-      default:formToken(token, BufferPtr + 1, Unknown);
+      default:formToken(Token, BufferPtr + 1, Unknown);
     }
     return;
   }

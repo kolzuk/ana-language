@@ -27,17 +27,17 @@ int main(int argc, const char** argv) {
   llvm::SourceMgr SrcMgr;
   SrcMgr.AddNewSourceBuffer(std::move(*FileOrErr),
                             llvm::SMLoc());
-  auto buffer = SrcMgr.getMemoryBuffer(SrcMgr.getMainFileID())->getBuffer();
+  auto Buffer = SrcMgr.getMemoryBuffer(SrcMgr.getMainFileID())->getBuffer();
 
-  Lexer lexer(buffer);
-  Parser parser(lexer);
-  AST* Tree = parser.parse();
-  if (!Tree || parser.hasError()) {
+  Lexer Lexer(Buffer);
+  Parser Parser(Lexer);
+  AST* Tree = Parser.parse();
+  if (!Tree || Parser.hasError()) {
     llvm::errs() << "Syntax errors occured\n";
     return 1;
   }
-  Sema sema;
-  if (sema.semantic(Tree)) {
+  Sema Sema;
+  if (Sema.semantic(Tree)) {
     llvm::errs() << "Semantic errors occured\n";
     return 1;
   }

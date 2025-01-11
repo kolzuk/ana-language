@@ -6,7 +6,7 @@
 
 class CodeGen {
  public:
-  static void compile(AST* Tree, std::string& sourceFilename);
+  static void compile(AST* Tree, std::string& SourceFilename);
 };
 
 #endif //CODEGEN_H
