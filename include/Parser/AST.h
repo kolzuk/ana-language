@@ -13,7 +13,7 @@ class CompilationUnitAST;
 class DeclarationAST;
 class ConstantDeclaration;
 class TypeAST;
-class IntTypeAST;
+class IntegerTypeAST;
 class ArrayTypeAST;
 class ExpressionAST;
 class RelationAST;
@@ -34,6 +34,8 @@ class ASTVisitor {
   virtual void visit(DeclarationAST&) {};
   virtual void visit(ConstantDeclaration&) = 0;
   virtual void visit(TypeAST&) = 0;
+  virtual void visit(IntegerTypeAST&) = 0;
+  virtual void visit(ArrayTypeAST&) = 0;
   virtual void visit(ExpressionAST&) = 0;
   virtual void visit(RelationAST&) = 0;
   virtual void visit(SimpleExpressionAST&) = 0;
@@ -59,7 +61,7 @@ class CompilationUnitAST : public AST {
  public:
   DeclarationsVector getDeclarations() { return Declarations; }
   explicit CompilationUnitAST(DeclarationsVector Declarations) : Declarations(std::move(Declarations)) {}
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -82,28 +84,29 @@ class ConstantDeclaration : public DeclarationAST {
   IdentifierAST* getIdentifier() { return Ident; };
   ExpressionAST* getExpression() { return Expr; }
 
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
 
-class TypeAST : public AST {
-public:
-    void accept(ASTVisitor& V) override = 0;
-};
+class TypeAST : public AST {};
 
-class IntTypeAST : public TypeAST {
+class IntegerTypeAST : public TypeAST {
 public:
-    void accept(ASTVisitor& V) override {
-        V.visit(*this);
-    }
+  void accept(ASTVisitor& V) override {
+      V.visit(*this);
+  }
 };
 
 class ArrayTypeAST : public TypeAST {
+  ExpressionAST* Size;
 public:
-    void accept(ASTVisitor& V) override {
-        V.visit(*this);
-    }
+  explicit ArrayTypeAST(ExpressionAST* Size)
+  : Size(Size) {}
+  ExpressionAST* getSize() { return Size; }
+  void accept(ASTVisitor& V) override {
+      V.visit(*this);
+  }
 };
 
 class ExpressionAST : public AST {
@@ -118,7 +121,7 @@ class ExpressionAST : public AST {
   RelationAST* getRel() { return Rel; }
   SimpleExpressionAST* getRHS() { return RHS; }
 
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -138,7 +141,7 @@ class RelationAST : public AST {
  public:
   explicit RelationAST(RelationId RelKind) : RelKind(RelKind) {}
   RelationId getRelKind() { return RelKind; }
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -168,7 +171,7 @@ class SimpleExpressionAST : public AST {
   TermAST* getTrm() { return Trm; }
   llvm::SmallVector<AddOperatorAST*> getAddOperators() { return AddOperators; };
   llvm::SmallVector<TermAST*> getTerms() { return Terms; };
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -184,7 +187,7 @@ class AddOperatorAST : public AST {
  public:
   explicit AddOperatorAST(AddOperatorId AddOperatorKind) : AddOperatorKind(AddOperatorKind) {}
   AddOperatorId getAddOperatorKind() { return AddOperatorKind; }
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -203,7 +206,7 @@ class TermAST : public AST {
   FactorAST* getFctor() { return Fctor; };
   llvm::SmallVector<MulOperatorAST*> getMulOperators() { return MulOperators; }
   llvm::SmallVector<FactorAST*> getFactors() { return Factors; } ;
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -219,7 +222,7 @@ class MulOperatorAST : public AST {
  public:
   explicit MulOperatorAST(MulOperatorId MulOperatorKind) : MulOperatorKind(MulOperatorKind) {}
   MulOperatorId getMulOperatorKind() { return MulOperatorKind; }
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -239,7 +242,7 @@ class GetByIndexAST : public FactorAST {
 
   IdentifierAST* getIdentifier() { return BaseIdentifier; }
   ExpressionAST* getExpr() { return Expr; }
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -249,7 +252,7 @@ class IdentifierAST : public FactorAST {
  public:
   explicit IdentifierAST(llvm::StringRef Value) : Value(Value) {}
   llvm::StringRef getValue() { return Value; }
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -259,7 +262,7 @@ class IntegerLiteralAST : public FactorAST {
  public:
   explicit IntegerLiteralAST(llvm::StringRef Value) : Value(Value) {}
   llvm::StringRef getValue() { return Value; }
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -270,7 +273,7 @@ class ExpressionFactorAST : public FactorAST {
   explicit ExpressionFactorAST(ExpressionAST* Expr) : Expr(Expr) {}
 
   ExpressionAST* getExpr() { return Expr; }
-  virtual void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };

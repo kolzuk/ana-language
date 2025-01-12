@@ -39,20 +39,25 @@ DeclarationAST* Parser::parseVariableDeclaration() {
   return new ConstantDeclaration(T, I, E);
 }
 
-/// type : "integer" | "array" "[" type "]";
+/// type : "integer" | "array" "[" expression "]";
 AST* Parser::parseType() {
-  if (Tok.is(TokenKind::KW_integer)) {
-    nextToken();
-    return new TypeAST(TypeAST::Integer, nullptr);
-  } else if (Tok.is(TokenKind::KW_array)) {
-    nextToken();
-    consume(TokenKind::LSquare);
-    TypeAST* NextType = dynamic_cast<TypeAST*>(parseType());
-    consume(TokenKind::RSquare);
-    return new TypeAST(TypeAST::Array, NextType);
-  } else {
-    error();
+  TypeAST* Type;
+  switch (Tok.getKind())
+  {
+    case (TokenKind::KW_integer):
+      nextToken();
+      Type = new IntegerTypeAST();
+      break;
+    case (TokenKind::NotEqual):
+      nextToken();
+      consume(TokenKind::LSquare);
+      auto* Size = dynamic_cast<ExpressionAST*>(parseExpression());
+      consume(TokenKind::RSquare);
+      Type = new ArrayTypeAST(Size);
+      break;
+    default:error();
   }
+  return Type;
 }
 
 /// expression : simpleExpression (relation simpleExpression)?;

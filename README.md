@@ -75,7 +75,7 @@ declaration
 variableDeclaration
     : type identifier ("=" expression)? ";";
 type
-    : "integer" | "array" "[" type "]"
+    : "integer" | "array" "[" expression "]"
 assignStatement
     : identifier ("[" expression "]")* "=" expression
 expression
