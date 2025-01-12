@@ -79,7 +79,7 @@ functionDeclaration
 type
     : "integer" | "array" "[" type "]"
 statementSequence
-    : (statement  ";" )*
+    : statement ( ";" statement )* ";"
 statement
     : variableDeclaration
     | assignStatement
@@ -91,7 +91,7 @@ statement
     | "break" 
     | "continue"
 assignStatement
-    : identifier ("[" expression "]")* ("=" expression)
+    : identifier ("[" expression "]")* "=" expression
 ifStatement
     : "if" "(" expression ")" "{" statementSequence "}"
     ( "else" "{" statementSequence "}" )?
@@ -115,8 +115,16 @@ mulOperator
     : "*" | "/"
 factor
     : integer_literal
+    | identifier
     | "(" expression ")"
-    | identifier ( "(" (expressionList)? ")"  | "[" expression "]")?
+    | functionCall 
+    | getByIndex
+functionCall
+    : identifier ( "(" (expressionList)? ")"
+expressionList
+    : expression ( "," expression )* 
+getByIndex
+    : "[" expression "]")
 identifier
     : [a-zA-Z_][a-zA-Z0-9_]*
 integer_literal

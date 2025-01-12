@@ -18,6 +18,7 @@ class Lexer {
   }
 
   void next(Token& Token);
+  Token peek(int n);
 
  private:
   void formToken(Token& Result, const char* TokEnd, TokenKind Kind);

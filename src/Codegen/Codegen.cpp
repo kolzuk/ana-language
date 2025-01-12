@@ -7,8 +7,6 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace llvm;
-
 namespace {
 class ToIRVisitor : public ASTVisitor {
   Module* M;
@@ -50,10 +48,14 @@ class ToIRVisitor : public ASTVisitor {
       S->accept(*this);
   }
 
-  virtual void visit(Declaration& Node) override {
+  virtual void visit(VariableDeclaration& Node) override {
     Node.getExpr()->accept(*this);
 
     NameMap[Node.getIdentifier()] = V;
+  }
+
+  // TODO
+  virtual void visit(FunctionDeclaration& Node) override {
   }
 
   virtual void visit(Factor& Node) override {

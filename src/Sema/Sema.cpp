@@ -21,6 +21,10 @@ class DeclCheck : public ASTVisitor {
   DeclCheck() : HasError(false) {}
   bool hasError() { return HasError; }
 
+  // TODO
+  virtual void visit(StatementsSequence& Node) override {
+  };
+
   virtual void visit(Factor& Node) override {
     if (Node.getKind() == Factor::Ident) {
       if (Scope.find(Node.getVal()) == Scope.end())
@@ -39,7 +43,7 @@ class DeclCheck : public ASTVisitor {
       HasError = true;
   }
 
-  virtual void visit(Declaration& Node) override {
+  virtual void visit(VariableDeclaration& Node) override {
     llvm::StringRef I = Node.getIdentifier();
     if (!Scope.insert(I).second)
       error(Twice, I);
@@ -48,9 +52,17 @@ class DeclCheck : public ASTVisitor {
     else
       HasError = true;
   };
+
+  // TODO
+  virtual void visit(FunctionDeclaration& Node) override {
+  };
 };
 }
 
+// TODO
 bool Sema::semantic(AST* Tree) {
-  return false;
+//  DeclCheck declCheck = DeclCheck();
+//  Tree->accept(declCheck);
+//
+//  return declCheck.hasError();
 }

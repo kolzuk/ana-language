@@ -1,4 +1,4 @@
-#include "lexer/Lexer.h"
+#include "Lexer/Lexer.h"
 
 namespace charinfo {
 LLVM_READNONE inline bool isWhitespace(char c) {
@@ -50,12 +50,6 @@ void Lexer::next(Token& Token) {
       Kind = TokenKind::KW_return;
     } else if (Name == "integer") {
       Kind = TokenKind::KW_integer;
-    } else if (Name == "bool") {
-      Kind = TokenKind::KW_bool;
-    } else if (Name == "true") {
-      Kind = TokenKind::KW_true;
-    } else if (Name == "false") {
-      Kind = TokenKind::KW_false;
     } else {
       Kind = TokenKind::Identifier;
     }
@@ -77,52 +71,57 @@ void Lexer::next(Token& Token) {
       ++End;
     if (*End == '"') {
       ++BufferPtr;
-      formToken(Token, End, String);
+      formToken(Token, End, TokenKind::Identifier);
       BufferPtr = End + 1;
     } else {
-      formToken(Token, BufferPtr + 1, Unknown);
+      formToken(Token, BufferPtr + 1, TokenKind::Unknown);
     }
     return;
   }
 
   if (*BufferPtr == '=' && *(BufferPtr + 1) == '=') {
-    formToken(Token, BufferPtr + 2, Equal);
+    formToken(Token, BufferPtr + 2, TokenKind::Equal);
   } else if (*BufferPtr == '<' && *(BufferPtr + 1) == '=') {
-    formToken(Token, BufferPtr + 2, LessEq);
+    formToken(Token, BufferPtr + 2, TokenKind::LessEq);
   } else if (*BufferPtr == '>' && *(BufferPtr + 1) == '=') {
-    formToken(Token, BufferPtr + 2, GreaterEq);
+    formToken(Token, BufferPtr + 2, TokenKind::GreaterEq);
   } else if (*BufferPtr == '!' && *(BufferPtr + 1) == '=') {
-    formToken(Token, BufferPtr + 2, NotEqual);
+    formToken(Token, BufferPtr + 2, TokenKind::NotEqual);
   } else if (*BufferPtr == '|' && *(BufferPtr + 1) == '|') {
-    formToken(Token, BufferPtr + 2, Or);
+    formToken(Token, BufferPtr + 2, TokenKind::Or);
   } else if (*BufferPtr == '&' && *(BufferPtr + 1) == '&') {
-    formToken(Token, BufferPtr + 2, And);
+    formToken(Token, BufferPtr + 2, TokenKind::And);
   } else {
     switch (*BufferPtr) {
 #define CASE(ch, tok) \
 case ch: formToken(Token, BufferPtr + 1, tok); break
-      CASE('=', Assign);
-      CASE('+', Plus);
-      CASE('-', Minus);
-      CASE('*', Star);
-      CASE('/', Slash);
-      CASE('%', Percent);
-      CASE('<', Less);
-      CASE('>', Greater);
-      CASE('(', LParen);
-      CASE(')', RParen);
-      CASE('{', LFigure);
-      CASE('}', RFigure);
-      CASE('[', LSquare);
-      CASE(']', RSquare);
-      CASE(',', Comma);
-      CASE(':', Colon);
-      CASE(';', Semicolon);
+      CASE('=', TokenKind::Assign);
+      CASE('+', TokenKind::Plus);
+      CASE('-', TokenKind::Minus);
+      CASE('*', TokenKind::Star);
+      CASE('/', TokenKind::Slash);
+      CASE('%', TokenKind::Percent);
+      CASE('<', TokenKind::Less);
+      CASE('>', TokenKind::Greater);
+      CASE('(', TokenKind::LParen);
+      CASE(')', TokenKind::RParen);
+      CASE('{', TokenKind::LFigure);
+      CASE('}', TokenKind::RFigure);
+      CASE('[', TokenKind::LSquare);
+      CASE(']', TokenKind::RSquare);
+      CASE(',', TokenKind::Comma);
+      CASE(':', TokenKind::Colon);
+      CASE(';', TokenKind::Semicolon);
 #undef CASE
-      default:formToken(Token, BufferPtr + 1, Unknown);
+      default:formToken(Token, BufferPtr + 1, TokenKind::Unknown);
     }
     return;
   }
+}
+
+// TODO
+Token Lexer::peek(int n) {
+  return Token();
 }
 
 void Lexer::formToken(Token& Result,
