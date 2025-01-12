@@ -13,6 +13,8 @@ class CompilationUnitAST;
 class DeclarationAST;
 class ConstantDeclaration;
 class TypeAST;
+class IntTypeAST;
+class ArrayTypeAST;
 class ExpressionAST;
 class RelationAST;
 class SimpleExpressionAST;
@@ -86,22 +88,22 @@ class ConstantDeclaration : public DeclarationAST {
 };
 
 class TypeAST : public AST {
- public:
-  enum TypeId : short {
-    Integer,
-    Array
-  };
- private:
-  TypeId TypeKind;
-  TypeAST* ArrayType;
- public:
-  TypeAST(TypeId TypeId, TypeAST* ArrayType)
-    : TypeKind(TypeId), ArrayType(ArrayType) {}
-  TypeId getTypeKind() { return TypeKind; }
-  TypeAST* getArrayType() { return ArrayType; }
-  virtual void accept(ASTVisitor& V) override {
-    V.visit(*this);
-  }
+public:
+    void accept(ASTVisitor& V) override = 0;
+};
+
+class IntTypeAST : public TypeAST {
+public:
+    void accept(ASTVisitor& V) override {
+        V.visit(*this);
+    }
+};
+
+class ArrayTypeAST : public TypeAST {
+public:
+    void accept(ASTVisitor& V) override {
+        V.visit(*this);
+    }
 };
 
 class ExpressionAST : public AST {
