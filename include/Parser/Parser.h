@@ -36,24 +36,16 @@ class Parser {
   }
 
   AST* parseCompilationUnit();
-  AST* parseDeclaration();
-  AST* parseVariableDeclaration();
+  DeclarationAST* parseDeclaration();
+  DeclarationAST* parseVariableDeclaration();
   AST* parseType();
-  AST* parseStatementsSequence();
-  AST* parseStatement();
-  AST* parseAssignStatement();
   AST* parseExpression();
   AST* parseRelation();
   AST* parseSimpleExpression();
   AST* parseAddOperator();
   AST* parseTerm();
   AST* parseMulOperator();
-  AST* parseFactor();
-  AST* parseFunctionCall();
-  AST* parseExpressionList();
-  AST* parseGetByIndex();
-  AST* parseIdentifier();
-  AST* parseIntegerLiteral();
+  FactorAST* parseFactor();
 
  public:
   explicit Parser(Lexer& Lex) : Lex(Lex), HasError(false) {
