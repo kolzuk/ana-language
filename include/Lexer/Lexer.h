@@ -2,6 +2,7 @@
 #define LEXER_H
 
 #include <cstdint>
+#include <deque>
 #include <map>
 #include <string>
 
@@ -22,6 +23,7 @@ class Lexer {
 
  private:
   void formToken(Token& Result, const char* TokEnd, TokenKind Kind);
+  std::deque<Token> TokensBuffer;
 };
 
 #endif //LEXER_H

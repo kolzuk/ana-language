@@ -171,6 +171,12 @@ class ToIRVisitor : public ASTVisitor {
   virtual void visit(ExpressionFactorAST& Node) override {
     Node.getExpr()->accept(*this);
   }
+
+  virtual void visit(IntegerTypeAST& Node) override {
+  }
+
+  virtual void visit(ArrayTypeAST& Node) override {
+  }
 };
 }
 

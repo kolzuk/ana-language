@@ -15,6 +15,11 @@ LLVM_READNONE inline bool isLetter(char c) {
 }
 
 void Lexer::next(Token& Token) {
+  if (!TokensBuffer.empty()) {
+    Token = TokensBuffer[0];
+    TokensBuffer.pop_front();
+  }
+
   while (*BufferPtr && charinfo::isWhitespace(*BufferPtr))
     ++BufferPtr;
 
@@ -50,6 +55,10 @@ void Lexer::next(Token& Token) {
       Kind = TokenKind::KW_return;
     } else if (Name == "integer") {
       Kind = TokenKind::KW_integer;
+    } else if (Name == "array") {
+      Kind = TokenKind::KW_array;
+    } else if (Name == "fun") {
+      Kind = TokenKind::KW_fun;
     } else {
       Kind = TokenKind::Identifier;
     }
@@ -65,20 +74,6 @@ void Lexer::next(Token& Token) {
     return;
   }
 
-  if (*BufferPtr == '"') {
-    const char* End = BufferPtr + 1;
-    while (*End && *End != '"')
-      ++End;
-    if (*End == '"') {
-      ++BufferPtr;
-      formToken(Token, End, TokenKind::Identifier);
-      BufferPtr = End + 1;
-    } else {
-      formToken(Token, BufferPtr + 1, TokenKind::Unknown);
-    }
-    return;
-  }
-
   if (*BufferPtr == '=' && *(BufferPtr + 1) == '=') {
     formToken(Token, BufferPtr + 2, TokenKind::Equal);
   } else if (*BufferPtr == '<' && *(BufferPtr + 1) == '=') {
@@ -91,6 +86,8 @@ void Lexer::next(Token& Token) {
     formToken(Token, BufferPtr + 2, TokenKind::Or);
   } else if (*BufferPtr == '&' && *(BufferPtr + 1) == '&') {
     formToken(Token, BufferPtr + 2, TokenKind::And);
+  } else if (*BufferPtr == '-' && *(BufferPtr + 1) == '>') {
+    formToken(Token, BufferPtr + 2, TokenKind::Arrow);
   } else {
     switch (*BufferPtr) {
 #define CASE(ch, tok) \
@@ -119,9 +116,13 @@ case ch: formToken(Token, BufferPtr + 1, tok); break
   }
 }
 
-// TODO
 Token Lexer::peek(int n) {
-  return Token();
+  for (auto i = TokensBuffer.size(); i <= n; i++) {
+    Token Token;
+    next(Token);
+    TokensBuffer.push_back(Token);
+  }
+  return TokensBuffer[n];
 }
 
 void Lexer::formToken(Token& Result,

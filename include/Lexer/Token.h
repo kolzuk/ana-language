@@ -34,6 +34,7 @@ enum class TokenKind : short {
   RFigure, // "}"
   LSquare, // "["
   RSquare, // "]"
+  Arrow, // "->"
 
   // Keywords
   KW_integer,
