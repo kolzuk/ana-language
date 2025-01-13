@@ -18,6 +18,7 @@ void Lexer::next(Token& Token) {
   if (!TokensBuffer.empty()) {
     Token = TokensBuffer[0];
     TokensBuffer.pop_front();
+    return;
   }
 
   while (*BufferPtr && charinfo::isWhitespace(*BufferPtr))

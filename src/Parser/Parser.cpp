@@ -26,12 +26,15 @@ DeclarationAST* Parser::parseDeclaration() {
   }
 }
 
-/// variableDeclaration : type identifier ( "=" expression ) ";";
+/// variableDeclaration : type identifier ( "=" expression )? ";";
 VariableDeclarationAST* Parser::parseVariableDeclaration() {
   auto* T = parseType();
   auto* I = parseIdentifier();
-  consume(TokenKind::Assign);
-  auto* E = parseExpression();
+  ExpressionAST* E = nullptr;
+  if (Tok.is(TokenKind::Assign)) {
+    nextToken();
+    E = parseExpression();
+  }
   consume(TokenKind::Semicolon);
   return new VariableDeclarationAST(T, I, E);
 }
@@ -45,6 +48,7 @@ FunctionDeclarationAST* Parser::parseFunctionDeclaration() {
   consume(TokenKind::RParen);
   TypeAST* Type;
   if (Tok.is(TokenKind::Arrow)) {
+    nextToken();
     Type = parseType();
   } else {
     Type = new VoidTypeAST();
@@ -64,7 +68,8 @@ TypeAST* Parser::parseType() {
   if (Tok.is(TokenKind::KW_array)) {
     nextToken();
     consume(TokenKind::LSquare);
-    auto* Size = parseExpression();
+    auto* Size = new IntegerLiteralAST(Tok.getText());
+    nextToken();
     consume(TokenKind::RSquare);
     return new ArrayTypeAST(Size);
   }
@@ -177,10 +182,11 @@ MulOperatorAST* Parser::parseMulOperator() {
 
 /// factor
 ///   : integer_literal
-///   | identifier
-///   | getByIndex
-///   | expressionFactor
-// TODO
+///    | arrayInitialization
+///    | identifier
+///    | getByIndex
+///    | expressionFactor
+///    | functionCall
 FactorAST* Parser::parseFactor() {
   if (Tok.is(TokenKind::Number)) {
     auto* Number = new IntegerLiteralAST(Tok.getText());
@@ -189,21 +195,24 @@ FactorAST* Parser::parseFactor() {
   }
 
   if (Tok.is(TokenKind::Identifier)) {
-    auto Name = new IdentifierAST(Tok.getText());
-    nextToken();
-    if (Tok.is(TokenKind::LSquare)) {
-      nextToken();
-      ExpressionAST* Expr = parseExpression();
-      consume(TokenKind::RSquare);
-      return new GetByIndexAST(Name, Expr);
-    } else {
-      return Name;
+    if (Lex.peek(0).is(TokenKind::LParen)) {
+      return parseFunctionCall();
     }
-  } else if (Tok.is(TokenKind::LParen)) {
+    if (Lex.peek(0).is(TokenKind::LSquare)) {
+      return parseGetByIndex();
+    }
+    return parseIdentifier();
+  }
+
+  if (Tok.is(TokenKind::LParen)) {
     nextToken();
     ExpressionAST* Expr = parseExpression();
     consume(TokenKind::RParen);
     return new ExpressionFactorAST(Expr);
+  }
+
+  if (Tok.is(TokenKind::LSquare)) {
+    return parseArrayInitialization();
   }
 
   error();
@@ -262,8 +271,19 @@ StatementSequenceAST* Parser::parseStatementSequence() {
 /// | whileStatement
 /// | returnStatement
 /// | (assignStatement ";")
-// TODO
 StatementAST* Parser::parseStatement() {
+  if (Tok.is(TokenKind::KW_if)) {
+    return parseIfStatement();
+  }
+  if (Tok.is(TokenKind::KW_while)) {
+    return parseWhileStatement();
+  }
+  if (Tok.is(TokenKind::KW_return)) {
+    return parseReturnStatement();
+  }
+  if (Tok.isOneOf(TokenKind::KW_integer, TokenKind::KW_array)) {
+    return parseVariableDeclaration();
+  }
   auto* Statement = parseAssignStatement();
   consume(TokenKind::Semicolon);
   return Statement;
@@ -318,3 +338,86 @@ ExpressionsListAST* Parser::parseExpressionsList() {
   }
   return new ExpressionsListAST(Exprs);
 }
+
+/// arrayInitialization : "[" (expression ("," expression)*) "]";
+ArrayInitializationAST* Parser::parseArrayInitialization() {
+  consume(TokenKind::LSquare);
+  llvm::SmallVector<ExpressionAST*> Exprs;
+  auto* E = parseExpression();
+  Exprs.push_back(E);
+
+  while (Tok.is(TokenKind::Comma)) {
+    nextToken();
+    E = parseExpression();
+    Exprs.push_back(E);
+  }
+  consume(TokenKind::RSquare);
+  return new ArrayInitializationAST(Exprs);
+}
+
+/// getByIndex : identifier "[" expression "]";
+GetByIndexAST* Parser::parseGetByIndex() {
+  auto* I = parseIdentifier();
+  consume(TokenKind::LSquare);
+  auto* Expr = parseExpression();
+  consume(TokenKind::RSquare);
+  return new GetByIndexAST(I, Expr);
+}
+
+/// functionCall : identifier "(" expressionList ")" ;
+FunctionCallAST* Parser::parseFunctionCall() {
+  auto* I = parseIdentifier();
+  consume(TokenKind::LParen);
+  auto* ExprList = parseExpressionsList();
+  consume(TokenKind::RParen);
+  return new FunctionCallAST(I, ExprList);
+}
+
+/// ifStatement
+///    : "if" "(" expression ")" "{" statementSequence "}"
+///    ( "else" "{" statementSequence "}" )?
+IfStatementAST* Parser::parseIfStatement() {
+  consume(TokenKind::KW_if);
+  consume(TokenKind::LParen);
+  auto* Expr = parseExpression();
+  consume(TokenKind::RParen);
+  consume(TokenKind::LFigure);
+  auto* SS = parseStatementSequence();
+  consume(TokenKind::RFigure);
+
+  if (Tok.is(TokenKind::KW_else)) {
+    nextToken();
+    consume(TokenKind::LFigure);
+    auto* ElseSS = parseStatementSequence();
+    consume(TokenKind::RFigure);
+    return new IfStatementAST(Expr, SS, ElseSS);
+  }
+
+  return new IfStatementAST(Expr, SS, nullptr);
+}
+
+/// whileStatement : "while" "(" expression ")" "{" statementSequence "}"
+WhileStatementAST* Parser::parseWhileStatement() {
+  consume(TokenKind::KW_while);
+  consume(TokenKind::LParen);
+  auto* Expr = parseExpression();
+  consume(TokenKind::RParen);
+  consume(TokenKind::LFigure);
+  auto* SS = parseStatementSequence();
+  consume(TokenKind::RFigure);
+
+  return new WhileStatementAST(Expr, SS);
+}
+
+/// returnStatement : "return" ( expression )? ";"
+ReturnStatementAST* Parser::parseReturnStatement() {
+  consume(TokenKind::KW_return);
+  if (Tok.is(TokenKind::Semicolon)) {
+    nextToken();
+    return new ReturnStatementAST(nullptr);
+  }
+  auto* Expr = parseExpression();
+  consume(TokenKind::Semicolon);
+  return new ReturnStatementAST(Expr);
+}
+
