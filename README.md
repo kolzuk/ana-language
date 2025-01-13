@@ -83,7 +83,7 @@ type
 integerType
     : "integer"
 arrayType
-    : "array" "[" integer_literal "]"
+    : "array" "[" integerLiteral "]"
 statementSequence
     : statement*
 statement
@@ -116,13 +116,13 @@ mulOperand
 mulOperator
     : "*" | "/"
 factor
-    : integer_literal
+    : integerLiteral
     | arrayInitialization
     | identifier
     | getByIndex
     | expressionFactor
     | functionCall
-integer_literal
+integerLiteral
     : [0-9]+
 identifier
     : [a-zA-Z_][a-zA-Z0-9_]*
