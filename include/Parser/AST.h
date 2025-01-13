@@ -46,41 +46,43 @@ class FunctionCallAST;
 
 class ASTVisitor {
  public:
-  virtual void visit(AST&) {};
-  virtual void visit(CompilationUnitAST&) = 0;
-  virtual void visit(DeclarationAST&) {};
-  virtual void visit(VariableDeclarationAST&) = 0;
-  virtual void visit(FunctionDeclarationAST&) = 0;
+  virtual ~ASTVisitor() = default;
 
-  virtual void visit(StatementSequenceAST&) = 0;
-  virtual void visit(StatementAST&) = 0;
-  virtual void visit(IfStatementAST&) = 0;
-  virtual void visit(WhileStatementAST&) = 0;
-  virtual void visit(ReturnStatementAST&) = 0;
-  virtual void visit(AssignStatementAST&) = 0;
+  virtual void visit(AST& Node) = 0;
+  virtual void visit(CompilationUnitAST& Node) = 0;
+  virtual void visit(DeclarationAST& Node) = 0;
+  virtual void visit(VariableDeclarationAST& Node) = 0;
+  virtual void visit(FunctionDeclarationAST& Node) = 0;
 
-  virtual void visit(TypeAST&) = 0;
-  virtual void visit(IntegerTypeAST&) = 0;
-  virtual void visit(ArrayTypeAST&) = 0;
-  virtual void visit(ArgumentsListAST&) = 0;
-  virtual void visit(ExpressionsListAST&) = 0;
+  virtual void visit(StatementSequenceAST& Node) = 0;
+  virtual void visit(StatementAST& Node) = 0;
+  virtual void visit(IfStatementAST& Node) = 0;
+  virtual void visit(WhileStatementAST& Node) = 0;
+  virtual void visit(ReturnStatementAST& Node) = 0;
+  virtual void visit(AssignStatementAST& Node) = 0;
 
-  virtual void visit(ExpressionAST&) = 0;
-  virtual void visit(RelationAST&) = 0;
-  virtual void visit(SimpleExpressionAST&) = 0;
-  virtual void visit(AddOperatorAST&) = 0;
-  virtual void visit(TermAST&) = 0;
-  virtual void visit(MulOperatorAST&) = 0;
-  virtual void visit(MulOperandAST&) = 0;
-  virtual void visit(UnaryOperatorAST&) = 0;
+  virtual void visit(TypeAST& Node) = 0;
+  virtual void visit(IntegerTypeAST& Node) = 0;
+  virtual void visit(ArrayTypeAST& Node) = 0;
+  virtual void visit(ArgumentsListAST& Node) = 0;
+  virtual void visit(ExpressionsListAST& Node) = 0;
 
-  virtual void visit(FactorAST&) {};
-  virtual void visit(IdentifierAST&) = 0;
-  virtual void visit(IntegerLiteralAST&) = 0;
-  virtual void visit(ArrayInitializationAST&) = 0;
-  virtual void visit(GetByIndexAST&) = 0;
-  virtual void visit(ExpressionFactorAST&) = 0;
-  virtual void visit(FunctionCallAST&) = 0;
+  virtual void visit(ExpressionAST& Node) = 0;
+  virtual void visit(RelationAST& Node) = 0;
+  virtual void visit(SimpleExpressionAST& Node) = 0;
+  virtual void visit(AddOperatorAST& Node) = 0;
+  virtual void visit(TermAST& Node) = 0;
+  virtual void visit(MulOperatorAST& Node) = 0;
+  virtual void visit(MulOperandAST& Node) = 0;
+  virtual void visit(UnaryOperatorAST& Node) = 0;
+
+  virtual void visit(FactorAST& Node) = 0;
+  virtual void visit(IdentifierAST& Node) = 0;
+  virtual void visit(IntegerLiteralAST& Node) = 0;
+  virtual void visit(ArrayInitializationAST& Node) = 0;
+  virtual void visit(GetByIndexAST& Node) = 0;
+  virtual void visit(ExpressionFactorAST& Node) = 0;
+  virtual void visit(FunctionCallAST& Node) = 0;
 };
 
 class AST {

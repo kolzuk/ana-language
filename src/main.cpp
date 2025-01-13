@@ -37,7 +37,7 @@ int main(int argc, const char** argv) {
     return 1;
   }
   Sema Sema;
-  if (Sema.semantic(Tree)) {
+  if (!Sema.semantic(Tree)) {
     llvm::errs() << "Semantic errors occured\n";
     return 1;
   }

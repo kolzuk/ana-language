@@ -1,65 +1,8 @@
-#include <llvm/Support/raw_ostream.h>
-
 #include "Sema/Sema.h"
-#include "llvm/ADT/StringSet.h"
+#include "Parser/AST.h"
 
-//namespace {
-//class DeclCheck : public ASTVisitor {
-//  llvm::StringSet<> Scope;
-//  bool HasError;
-//
-//  enum ErrorType { Twice, Not };
-//
-//  void error(ErrorType ET, llvm::StringRef V) {
-//    llvm::errs() << "Variable " << V << " "
-//                 << (ET == Twice ? "already" : "not")
-//                 << " declared\n";
-//    HasError = true;
-//  }
-//
-// public:
-//  DeclCheck() : HasError(false) {}
-//  bool hasError() { return HasError; }
-//
-//  // TODO
-//  virtual void visit(StatementsSequence& Node) override {
-//  };
-//
-//  virtual void visit(Factor& Node) override {
-//    if (Node.getKind() == Factor::Ident) {
-//      if (Scope.find(Node.getVal()) == Scope.end())
-//        error(Not, Node.getVal());
-//    }
-//  };
-//
-//  virtual void visit(BinaryOp& Node) override {
-//    if (Node.getLeft())
-//      Node.getLeft()->accept(*this);
-//    else
-//      HasError = true;
-//    if (Node.getRight())
-//      Node.getRight()->accept(*this);
-//    else
-//      HasError = true;
-//  }
-//
-//  virtual void visit(VariableDeclaration& Node) override {
-//    llvm::StringRef I = Node.getIdentifier();
-//    if (!Scope.insert(I).second)
-//      error(Twice, I);
-//    if (Node.getExpr())
-//      Node.getExpr()->accept(*this);
-//    else
-//      HasError = true;
-//  };
-//
-//  // TODO
-//  virtual void visit(FunctionDeclaration& Node) override {
-//  };
-//};
-//}
-//
-// TODO
 bool Sema::semantic(AST* Tree) {
-  return false;
+  Tree->accept(Visitor);
+  return !Visitor.hasError();
 }
+
