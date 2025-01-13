@@ -77,9 +77,13 @@ functionDeclaration
 argumentList
     : ( type identifier ( "," type identifier )* )?
 variableDeclaration
-    : type identifier ("[" integer_literal "]")? ("=" expression)? ";"
+    : type identifier ("=" expression)? ";"
 type
     : "integer" | "array"
+integerType
+    : "integer"
+arrayType
+    : "array" "[" integer_literal "]"
 statementSequence
     : statement*
 statement
