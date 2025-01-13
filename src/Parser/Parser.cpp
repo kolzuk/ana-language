@@ -26,12 +26,15 @@ DeclarationAST* Parser::parseDeclaration() {
   }
 }
 
-/// variableDeclaration : type identifier ( "=" expression ) ";";
+/// variableDeclaration : type identifier ( "=" expression )? ";";
 VariableDeclarationAST* Parser::parseVariableDeclaration() {
   auto* T = parseType();
   auto* I = parseIdentifier();
-  consume(TokenKind::Assign);
-  auto* E = parseExpression();
+  ExpressionAST* E = nullptr;
+  if (Tok.is(TokenKind::Assign)) {
+    nextToken();
+    E = parseExpression();
+  }
   consume(TokenKind::Semicolon);
   return new VariableDeclarationAST(T, I, E);
 }
