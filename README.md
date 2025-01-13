@@ -18,9 +18,9 @@ int partition(int arr[], int l, int r) {
    int j = r;
    while (i <= j) {
      while (arr[i] < v)
-       i++;
+       i = i + 1;
      while (arr[j] > v)
-       j--;
+       j = j + 1;
      if (i >= j)
        break;
 
@@ -67,4 +67,69 @@ int *getPrimeNumbers(int n) {
 
 ## Грамматика языка:
 
-Необходимы следующие ключевые слова: `for`, `if`, `while`.
+```
+compilationUnit
+    : ( declaration )*
+declaration
+    : variableDeclaration | functionDeclaration
+functionDeclaration
+    : "fun" identifier "(" argumentList ")" ( "->" type )? "{" statementSequence "}"
+argumentList
+    : ( type identifier ( "," type identifier )* )?
+variableDeclaration
+    : type identifier ("[" integer_literal "]")? ("=" expression)? ";"
+type
+    : "integer" | "array"
+statementSequence
+    : statement*
+statement
+    : variableDeclaration
+    | ifStatement
+    | whileStatement
+    | returnStatement
+    | (assignStatement ";")
+ifStatement
+    : "if" "(" expression ")" "{" statementSequence "}"
+    ( "else" "{" statementSequence "}" )?
+whileStatement
+    : "while" "(" expression ")" "{" statementSequence "}"
+returnStatement
+    : "return" ( expression )? ";"
+assignStatement
+    : expression ( "=" expression)?
+expression
+    : simpleExpression (relation simpleExpression)?
+relation
+    : "==" | "!=" | "<" | "<=" | ">" | ">="
+simpleExpression
+    : term (addOperator term)*
+addOperator
+    : "+" | "-"
+term
+    : mulOperand (mulOperator mulOperand)*
+mulOperand
+    : ("+" | "-")? factor
+mulOperator
+    : "*" | "/"
+factor
+    : integer_literal
+    | arrayInitialization
+    | identifier
+    | getByIndex
+    | expressionFactor
+    | functionCall
+integer_literal
+    : [0-9]+
+identifier
+    : [a-zA-Z_][a-zA-Z0-9_]*
+getByIndex
+    : identifier "[" expression "]";
+expressionFactor
+    : "(" expression ")"
+functionCall
+    : identifier "(" (expressionList)? ")" ;
+arrayInitialization
+    : "[" (expression ("," expression)*) "]";
+expressionList
+    : expression ( "," expression )* ;
+```

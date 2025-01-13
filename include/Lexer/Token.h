@@ -4,10 +4,9 @@
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/MemoryBuffer.h>
 
-enum TokenKind : short {
+enum class TokenKind : short {
   Identifier,
   Number,
-  String,
   Colon,     // ":'
   Semicolon, // ";"
   Comma,     // ","
@@ -35,17 +34,17 @@ enum TokenKind : short {
   RFigure, // "}"
   LSquare, // "["
   RSquare, // "]"
+  Arrow, // "->"
 
   // Keywords
   KW_integer,
+  KW_array,
   KW_if,
   KW_else,
   KW_for,
   KW_while,
   KW_return,
-  KW_bool,
-  KW_true,
-  KW_false,
+  KW_fun,
 
   EOI, // End of input
   Unknown,

@@ -11,6 +11,7 @@ find_package(LLVM 17 REQUIRED CONFIG)
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+set(LLVM_REQUIRES_RTTI 1)
 include(AddLLVM)
 
 set(LLVM_LINK_COMPONENTS

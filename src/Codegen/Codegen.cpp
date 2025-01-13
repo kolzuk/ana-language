@@ -43,45 +43,140 @@ class ToIRVisitor : public ASTVisitor {
     Builder.CreateRet(V);
   }
 
-  virtual void visit(StatementsSequence& Node) override {
-    auto Statements = Node.getStatements();
-
-    for (auto S : Statements)
-      S->accept(*this);
+  virtual void visit(CompilationUnitAST& Node) override {
+    for (auto Decl : Node.getDeclarations()) {
+      Decl->accept(*this);
+    }
   }
 
-  virtual void visit(Declaration& Node) override {
-    Node.getExpr()->accept(*this);
+  virtual void visit(ConstantDeclaration& Node) override {
+    IdentifierAST* Ident = Node.getIdentifier();
+    ExpressionAST* Expr = Node.getExpression();
 
-    NameMap[Node.getIdentifier()] = V;
+    Expr->accept(*this);
+
+    auto* Alloca = Builder.CreateAlloca(Int32Ty, nullptr, Ident->getValue());
+    Builder.CreateStore(V, Alloca);
+
+    NameMap[Ident->getValue()] = Alloca;
   }
 
-  virtual void visit(Factor& Node) override {
-    if (Node.getKind() == Factor::Ident) {
-      V = NameMap[Node.getVal()];
+  virtual void visit(TypeAST& Node) override {
+  }
+
+  virtual void visit(ExpressionAST& Node) override {
+    Node.getLHS()->accept(*this);
+    Value* LHS = V;
+
+    if (Node.getRHS()) {
+      Node.getRHS()->accept(*this);
+      Value* RHS = V;
+
+      switch (Node.getRel()->getRelKind()) {
+        case RelationAST::Equal:
+          V = Builder.CreateICmpEQ(LHS, RHS);
+          break;
+        case RelationAST::NotEqual:
+          V = Builder.CreateICmpNE(LHS, RHS);
+          break;
+        case RelationAST::Less:
+          V = Builder.CreateICmpSLT(LHS, RHS);
+          break;
+        case RelationAST::LessEq:
+          V = Builder.CreateICmpSLE(LHS, RHS);
+          break;
+        case RelationAST::Greater:
+          V = Builder.CreateICmpSGT(LHS, RHS);
+          break;
+        case RelationAST::GreaterEq:
+          V = Builder.CreateICmpSGE(LHS, RHS);
+          break;
+      }
     } else {
-      int intval;
-      Node.getVal().getAsInteger(10, intval);
-      V = ConstantInt::get(Int32Ty, intval, true);
+      V = LHS;
     }
   }
 
-  virtual void visit(BinaryOp& Node) override {
-    Node.getLeft()->accept(*this);
-    Value* Left = V;
-    Node.getRight()->accept(*this);
-    Value* Right = V;
-    switch (Node.getOperator()) {
-      case BinaryOp::Plus:V = Builder.CreateNSWAdd(Left, Right);
-        break;
-      case BinaryOp::Minus:V = Builder.CreateNSWSub(Left, Right);
-        break;
-      case BinaryOp::Mul:V = Builder.CreateNSWMul(Left, Right);
-        break;
-      case BinaryOp::Div:V = Builder.CreateSDiv(Left, Right);
-        break;
+  virtual void visit(RelationAST& Node) override {
+  }
+
+  virtual void visit(SimpleExpressionAST& Node) override {
+    Node.getTrm()->accept(*this);
+    Value* Result = V;
+
+    auto AddOps = Node.getAddOperators();
+    auto Terms = Node.getTerms();
+    for (size_t i = 0; i < AddOps.size(); ++i) {
+      Terms[i]->accept(*this);
+      Value* TermVal = V;
+
+      switch (AddOps[i]->getAddOperatorKind()) {
+        case AddOperatorAST::Plus:
+          Result = Builder.CreateAdd(Result, TermVal);
+          break;
+        case AddOperatorAST::Minus:
+          Result = Builder.CreateSub(Result, TermVal);
+          break;
+      }
     }
-  };
+
+    V = Result;
+  }
+
+  virtual void visit(AddOperatorAST& Node) override {
+  }
+
+  virtual void visit(TermAST& Node) override {
+    Node.getFctor()->accept(*this);
+    Value* Result = V;
+
+    auto MulOps = Node.getMulOperators();
+    auto Factors = Node.getFactors();
+    for (size_t i = 0; i < MulOps.size(); ++i) {
+      Factors[i]->accept(*this);
+      Value* FactorVal = V;
+
+      switch (MulOps[i]->getMulOperatorKind()) {
+        case MulOperatorAST::Multiple:
+          Result = Builder.CreateMul(Result, FactorVal);
+          break;
+        case MulOperatorAST::Divide:
+          Result = Builder.CreateSDiv(Result, FactorVal);
+          break;
+      }
+    }
+
+    V = Result;
+  }
+
+  virtual void visit(MulOperatorAST& Node) override {
+  }
+
+  virtual void visit(GetByIndexAST& Node) override {
+    Node.getExpr()->accept(*this);
+    Value* Index = V;
+    llvm::StringRef Name = Node.getIdentifier()->getValue();
+    Value* Base = NameMap[Name];
+    V = Builder.CreateGEP(Int32Ty, Base, Index);
+  }
+
+  virtual void visit(IdentifierAST& Node) override {
+    V = Builder.CreateLoad(Int32Ty, NameMap[Node.getValue()]);
+  }
+
+  virtual void visit(IntegerLiteralAST& Node) override {
+    V = ConstantInt::get(Int32Ty, std::stoi(Node.getValue().str()));
+  }
+
+  virtual void visit(ExpressionFactorAST& Node) override {
+    Node.getExpr()->accept(*this);
+  }
+
+  virtual void visit(IntegerTypeAST& Node) override {
+  }
+
+  virtual void visit(ArrayTypeAST& Node) override {
+  }
 };
 }
 
