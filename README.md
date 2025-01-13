@@ -79,7 +79,8 @@ argumentList
 variableDeclaration
     : type identifier ("=" expression)? ";"
 type
-    : "integer" | "array"
+    : integerType
+    | arrayType
 integerType
     : "integer"
 arrayType
