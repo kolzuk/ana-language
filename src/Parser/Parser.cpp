@@ -5,7 +5,7 @@ AST* Parser::parse() {
 }
 
 /// compilationUnit : ( declaration )*;
-AST* Parser::parseCompilationUnit() {
+CompilationUnitAST* Parser::parseCompilationUnit() {
   llvm::SmallVector<DeclarationAST*, 8> Declarations;
   while (!Tok.is(TokenKind::EOI)) {
     DeclarationAST* Declaration = parseDeclaration();
@@ -17,30 +17,46 @@ AST* Parser::parseCompilationUnit() {
   return new CompilationUnitAST(Declarations);
 }
 
-/// declaration : ( variableDeclaration );
+/// declaration : ( variableDeclaration | functionDeclaration );
 DeclarationAST* Parser::parseDeclaration() {
-  // TODO
   if (Tok.is(TokenKind::KW_fun)) {
-
+    return parseFunctionDeclaration();
   } else {
     return parseVariableDeclaration();
   }
 }
 
 /// variableDeclaration : type identifier ( "=" expression ) ";";
-DeclarationAST* Parser::parseVariableDeclaration() {
-  auto* T = dynamic_cast<TypeAST*>(parseType());
-  auto* I = new IdentifierAST(Tok.getText());
-  nextToken();
+VariableDeclarationAST* Parser::parseVariableDeclaration() {
+  auto* T = parseType();
+  auto* I = parseIdentifier();
   consume(TokenKind::Assign);
-  auto* E = dynamic_cast<ExpressionAST*>(parseExpression());
+  auto* E = parseExpression();
   consume(TokenKind::Semicolon);
+  return new VariableDeclarationAST(T, I, E);
+}
 
-  return new ConstantDeclaration(T, I, E);
+/// "fun" identifier "(" argumentList? ")" ( "->" type )? "{" statementSequence "}"
+FunctionDeclarationAST* Parser::parseFunctionDeclaration() {
+  consume(TokenKind::KW_fun);
+  auto* Ident = parseIdentifier();
+  consume(TokenKind::LParen);
+  auto* ArgList = parseArgumentsList();
+  consume(TokenKind::RParen);
+  TypeAST* Type;
+  if (Tok.is(TokenKind::Arrow)) {
+    Type = parseType();
+  } else {
+    Type = new VoidTypeAST();
+  }
+  consume(TokenKind::LFigure);
+  auto* SS = parseStatementSequence();
+  consume(TokenKind::RFigure);
+  return new FunctionDeclarationAST(Type, Ident, ArgList, SS);
 }
 
 /// type : "integer" | "array" "[" expression "]";
-AST* Parser::parseType() {
+TypeAST* Parser::parseType() {
   if (Tok.is(TokenKind::KW_integer)) {
     nextToken();
     return new IntegerTypeAST();
@@ -48,7 +64,7 @@ AST* Parser::parseType() {
   if (Tok.is(TokenKind::KW_array)) {
     nextToken();
     consume(TokenKind::LSquare);
-    auto* Size = dynamic_cast<ExpressionAST*>(parseExpression());
+    auto* Size = parseExpression();
     consume(TokenKind::RSquare);
     return new ArrayTypeAST(Size);
   }
@@ -57,9 +73,8 @@ AST* Parser::parseType() {
 }
 
 /// expression : simpleExpression (relation simpleExpression)?;
-AST* Parser::parseExpression() {
-  auto Left = dynamic_cast<SimpleExpressionAST*>(parseSimpleExpression());
-  nextToken();
+ExpressionAST* Parser::parseExpression() {
+  auto Left = parseSimpleExpression();
 
   if (Tok.isOneOf(TokenKind::Equal,
                   TokenKind::NotEqual,
@@ -67,8 +82,8 @@ AST* Parser::parseExpression() {
                   TokenKind::LessEq,
                   TokenKind::Greater,
                   TokenKind::GreaterEq)) {
-    auto Rel = dynamic_cast<RelationAST*>(parseRelation());
-    auto Right = dynamic_cast<SimpleExpressionAST*>(parseSimpleExpression());
+    auto Rel = parseRelation();
+    auto Right = parseSimpleExpression();
     return new ExpressionAST(Left, Rel, Right);
   }
 
@@ -76,15 +91,21 @@ AST* Parser::parseExpression() {
 }
 
 /// relation : "==" | "!=" | "<" | "<=" | ">" | ">=";
-AST* Parser::parseRelation() {
-  RelationAST* Rel;
+RelationAST* Parser::parseRelation() {
+  RelationAST* Rel = nullptr;
   switch (Tok.getKind()) {
-    case (TokenKind::Equal):Rel = new RelationAST(RelationAST::Equal); break;
-    case (TokenKind::NotEqual):Rel = new RelationAST(RelationAST::NotEqual); break;
-    case (TokenKind::Less):Rel = new RelationAST(RelationAST::Less); break;
-    case (TokenKind::LessEq):Rel = new RelationAST(RelationAST::LessEq); break;
-    case (TokenKind::Greater):Rel = new RelationAST(RelationAST::Greater); break;
-    case (TokenKind::GreaterEq):Rel = new RelationAST(RelationAST::GreaterEq); break;
+    case (TokenKind::Equal):Rel = new RelationAST(RelationAST::Equal);
+      break;
+    case (TokenKind::NotEqual):Rel = new RelationAST(RelationAST::NotEqual);
+      break;
+    case (TokenKind::Less):Rel = new RelationAST(RelationAST::Less);
+      break;
+    case (TokenKind::LessEq):Rel = new RelationAST(RelationAST::LessEq);
+      break;
+    case (TokenKind::Greater):Rel = new RelationAST(RelationAST::Greater);
+      break;
+    case (TokenKind::GreaterEq):Rel = new RelationAST(RelationAST::GreaterEq);
+      break;
     default:error();
   }
 
@@ -92,38 +113,30 @@ AST* Parser::parseRelation() {
   return Rel;
 }
 
-/// simpleExpression : ("+" | "-")? term (addOperator term)*;
-AST *Parser::parseSimpleExpression() {
-  SimpleExpressionAST::SignId SignKind;
-  if (Tok.is(TokenKind::Plus)) {
-    SignKind = SimpleExpressionAST::SignId::Plus;
-    nextToken();
-  } else if (Tok.is(TokenKind::Minus)) {
-    SignKind = SimpleExpressionAST::SignId::Minus;
-    nextToken();
-  }
-
-  auto* FirstTrm = dynamic_cast<TermAST*>(parseTerm());
-
+/// simpleExpression : term (addOperator term)*;
+SimpleExpressionAST* Parser::parseSimpleExpression() {
+  auto* FirstTrm = parseTerm();
   llvm::SmallVector<AddOperatorAST*> AddOperators;
   llvm::SmallVector<TermAST*> Terms;
 
   while (Tok.isOneOf(TokenKind::Plus, TokenKind::Minus)) {
-    auto AddOper = dynamic_cast<AddOperatorAST*>(parseAddOperator());
-    auto* Trm = dynamic_cast<TermAST*>(parseTerm());
+    auto AddOper = parseAddOperator();
+    auto* Trm = parseTerm();
     AddOperators.push_back(AddOper);
     Terms.push_back(Trm);
   }
 
-  return new SimpleExpressionAST(SignKind, FirstTrm, AddOperators, Terms);
+  return new SimpleExpressionAST(FirstTrm, AddOperators, Terms);
 }
 
 /// addOperator : "+" | "-";
-AST *Parser::parseAddOperator() {
-  AddOperatorAST* AddOper;
+AddOperatorAST* Parser::parseAddOperator() {
+  AddOperatorAST* AddOper = nullptr;
   switch (Tok.getKind()) {
-    case (TokenKind::Plus):AddOper = new AddOperatorAST(AddOperatorAST::Plus); break;
-    case (TokenKind::Minus):AddOper = new AddOperatorAST(AddOperatorAST::Minus); break;
+    case (TokenKind::Plus):AddOper = new AddOperatorAST(AddOperatorAST::Plus);
+      break;
+    case (TokenKind::Minus):AddOper = new AddOperatorAST(AddOperatorAST::Minus);
+      break;
     default:error();
   }
 
@@ -132,28 +145,29 @@ AST *Parser::parseAddOperator() {
 }
 
 /// term : factor (mulOperator factor)*;
-AST* Parser::parseTerm() {
-  auto* FirstFactor = dynamic_cast<FactorAST*>(parseFactor());
-
+TermAST* Parser::parseTerm() {
+  auto* FirstFactor = parseMulOperand();
   llvm::SmallVector<MulOperatorAST*> MulOperators;
-  llvm::SmallVector<FactorAST*> Factors;
+  llvm::SmallVector<MulOperandAST*> Factors;
 
   while (Tok.isOneOf(TokenKind::Star, TokenKind::Slash)) {
-    auto MulOper = dynamic_cast<MulOperatorAST*>(parseMulOperator());
-    auto* Fctor = dynamic_cast<FactorAST*>(parseFactor());
+    auto* MulOper = parseMulOperator();
+    auto* Factor = parseMulOperand();
     MulOperators.push_back(MulOper);
-    Factors.push_back(Fctor);
+    Factors.push_back(Factor);
   }
 
   return new TermAST(FirstFactor, MulOperators, Factors);
 }
 
-///mulOperator : "*" | "/";
-AST* Parser::parseMulOperator() {
-  MulOperatorAST* MulOper;
+/// mulOperator : "*" | "/";
+MulOperatorAST* Parser::parseMulOperator() {
+  MulOperatorAST* MulOper = nullptr;
   switch (Tok.getKind()) {
-    case (TokenKind::Star):MulOper = new MulOperatorAST(MulOperatorAST::Multiple); break;
-    case (TokenKind::Slash):MulOper = new MulOperatorAST(MulOperatorAST::Divide); break;
+    case (TokenKind::Star):MulOper = new MulOperatorAST(MulOperatorAST::Multiple);
+      break;
+    case (TokenKind::Slash):MulOper = new MulOperatorAST(MulOperatorAST::Divide);
+      break;
     default:error();
   }
 
@@ -167,15 +181,18 @@ AST* Parser::parseMulOperator() {
 ///   | getByIndex
 ///   | expressionFactor
 FactorAST* Parser::parseFactor() {
-  FactorAST *Res = nullptr;
-  if (Tok.is(TokenKind::Number))
-    return new IntegerLiteralAST(Tok.getText());
-  else if (Tok.is(TokenKind::Identifier)) {
+  if (Tok.is(TokenKind::Number)) {
+    auto* Number = new IntegerLiteralAST(Tok.getText());
+    nextToken();
+    return Number;
+  }
+
+  if (Tok.is(TokenKind::Identifier)) {
     auto Name = new IdentifierAST(Tok.getText());
     nextToken();
     if (Tok.is(TokenKind::LSquare)) {
       nextToken();
-      ExpressionAST* Expr = dynamic_cast<ExpressionAST*>(parseExpression());
+      ExpressionAST* Expr = parseExpression();
       consume(TokenKind::RSquare);
       return new GetByIndexAST(Name, Expr);
     } else {
@@ -183,11 +200,107 @@ FactorAST* Parser::parseFactor() {
     }
   } else if (Tok.is(TokenKind::LParen)) {
     nextToken();
-    ExpressionAST* Expr = dynamic_cast<ExpressionAST*>(parseExpression());
+    ExpressionAST* Expr = parseExpression();
     consume(TokenKind::RParen);
     return new ExpressionFactorAST(Expr);
   }
 
   error();
   return nullptr;
+}
+
+MulOperandAST* Parser::parseMulOperand() {
+  UnaryOperatorAST* Operator = nullptr;
+  if (Tok.isOneOf(TokenKind::Plus, TokenKind::Minus)) {
+    Operator = parseUnaryOperator();
+  }
+  auto* Factor = parseFactor();
+  return new MulOperandAST(Factor, Operator);
+}
+
+UnaryOperatorAST* Parser::parseUnaryOperator() {
+  UnaryOperatorAST* Operator = nullptr;
+  switch (Tok.getKind()) {
+    case (TokenKind::Plus):Operator = new UnaryOperatorAST(UnaryOperatorAST::Plus);
+      break;
+    case (TokenKind::Minus):Operator = new UnaryOperatorAST(UnaryOperatorAST::Minus);
+      break;
+    default:error();
+  }
+
+  nextToken();
+  return Operator;
+}
+
+IdentifierAST* Parser::parseIdentifier() {
+  if (Tok.is(TokenKind::Identifier)) {
+    auto* I = new IdentifierAST(Tok.getText());
+    nextToken();
+    return I;
+  }
+  error();
+  return nullptr;
+}
+
+StatementSequenceAST* Parser::parseStatementSequence() {
+  std::vector<StatementAST*> Statements;
+  while (!Tok.is(TokenKind::RFigure)) {
+    auto* Statement = parseStatement();
+    Statements.push_back(Statement);
+  }
+  return new StatementSequenceAST(Statements);
+}
+
+// TODO
+StatementAST* Parser::parseStatement() {
+  auto* Statement = parseAssignStatement();
+  consume(TokenKind::Semicolon);
+  return Statement;
+}
+
+AssignStatementAST* Parser::parseAssignStatement() {
+  auto* LHS = parseExpression();
+  ExpressionAST* RHS = nullptr;
+  if (Tok.is(TokenKind::Assign)) {
+    nextToken();
+    RHS = parseExpression();
+  }
+  return new AssignStatementAST(LHS, RHS);
+}
+
+ArgumentsListAST* Parser::parseArgumentsList() {
+  llvm::SmallVector<IdentifierAST*> Idents;
+  llvm::SmallVector<TypeAST*> Types;
+  if (Tok.is(TokenKind::RParen)) {
+    return new ArgumentsListAST(Idents, Types);
+  } else {
+    auto* T = parseType();
+    auto* I = parseIdentifier();
+    Types.push_back(T);
+    Idents.push_back(I);
+  }
+  while (Tok.is(TokenKind::Comma)) {
+    nextToken();
+    auto* T = parseType();
+    auto* I = parseIdentifier();
+    Types.push_back(T);
+    Idents.push_back(I);
+  }
+  return new ArgumentsListAST(Idents, Types);
+}
+
+ExpressionsListAST* Parser::parseExpressionsList() {
+  llvm::SmallVector<ExpressionAST*> Exprs;
+  if (Tok.is(TokenKind::RParen)) {
+    return new ExpressionsListAST(Exprs);
+  } else {
+    auto* E = parseExpression();
+    Exprs.push_back(E);
+  }
+  while (Tok.is(TokenKind::Comma)) {
+    nextToken();
+    auto* E = parseExpression();
+    Exprs.push_back(E);
+  }
+  return new ExpressionsListAST(Exprs);
 }
