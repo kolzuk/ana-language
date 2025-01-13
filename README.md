@@ -131,9 +131,9 @@ getByIndex
 expressionFactor
     : "(" expression ")"
 functionCall
-    : identifier "(" (expressionList)? ")" ;
+    : identifier "(" expressionList ")" ;
 arrayInitialization
     : "[" (expression ("," expression)*) "]";
 expressionList
-    : expression ( "," expression )* ;
+    : ( expression ( "," expression )* )? ;
 ```

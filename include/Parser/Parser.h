@@ -44,7 +44,6 @@ class Parser {
   StatementAST* parseStatement();
   AssignStatementAST* parseAssignStatement();
 
-  // TODO
   IfStatementAST* parseIfStatement();
   WhileStatementAST* parseWhileStatement();
   ReturnStatementAST* parseReturnStatement();
