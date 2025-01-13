@@ -71,30 +71,53 @@ int *getPrimeNumbers(int n) {
 compilationUnit
     : ( declaration )*
 declaration
-    : variableDeclaration
+    : variableDeclaration | functionDeclaration
+functionDeclaration
+    : "fun" identifier "(" argumentList ")" ( "->" type )? "{" statementSequence "}"
+argumentList
+    : ( type identifier ( "," type identifier )* )?
 variableDeclaration
-    : type identifier ("=" expression)? ";";
+    : type identifier ("[" integer_literal "]")? ("=" expression)? ";"
 type
-    : "integer" | "array" "[" expression "]"
+    : "integer" | "array"
+statementSequence
+    : statement*
+statement
+    : variableDeclaration
+    | ifStatement
+    | whileStatement
+    | returnStatement
+    | (assignStatement ";")
+ifStatement
+    : "if" "(" expression ")" "{" statementSequence "}"
+    ( "else" "{" statementSequence "}" )?
+whileStatement
+    : "while" "(" expression ")" "{" statementSequence "}"
+returnStatement
+    : "return" ( expression )? ";"
 assignStatement
-    : identifier ("[" expression "]")* "=" expression
+    : expression ( "=" expression)?
 expression
     : simpleExpression (relation simpleExpression)?
 relation
     : "==" | "!=" | "<" | "<=" | ">" | ">="
 simpleExpression
-    : ("+" | "-")? term (addOperator term)*
+    : term (addOperator term)*
 addOperator
     : "+" | "-"
 term
-    : factor (mulOperator factor)*
+    : mulOperand (mulOperator mulOperand)*
+mulOperand
+    : ("+" | "-")? factor
 mulOperator
     : "*" | "/"
 factor
     : integer_literal
+    | arrayInitialization
     | identifier
     | getByIndex
     | expressionFactor
+    | functionCall
 integer_literal
     : [0-9]+
 identifier
@@ -103,4 +126,10 @@ getByIndex
     : identifier "[" expression "]";
 expressionFactor
     : "(" expression ")"
+functionCall
+    : identifier "(" (expressionList)? ")" ;
+arrayInitialization
+    : "[" (expression ("," expression)*) "]";
+expressionList
+    : expression ( "," expression )* ;
 ```

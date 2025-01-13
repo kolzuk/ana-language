@@ -180,6 +180,7 @@ MulOperatorAST* Parser::parseMulOperator() {
 ///   | identifier
 ///   | getByIndex
 ///   | expressionFactor
+// TODO
 FactorAST* Parser::parseFactor() {
   if (Tok.is(TokenKind::Number)) {
     auto* Number = new IntegerLiteralAST(Tok.getText());
@@ -209,6 +210,7 @@ FactorAST* Parser::parseFactor() {
   return nullptr;
 }
 
+/// mulOperand : unaryOperator? factor
 MulOperandAST* Parser::parseMulOperand() {
   UnaryOperatorAST* Operator = nullptr;
   if (Tok.isOneOf(TokenKind::Plus, TokenKind::Minus)) {
@@ -218,6 +220,7 @@ MulOperandAST* Parser::parseMulOperand() {
   return new MulOperandAST(Factor, Operator);
 }
 
+/// unaryOperator : ("+" | "-")
 UnaryOperatorAST* Parser::parseUnaryOperator() {
   UnaryOperatorAST* Operator = nullptr;
   switch (Tok.getKind()) {
@@ -232,6 +235,7 @@ UnaryOperatorAST* Parser::parseUnaryOperator() {
   return Operator;
 }
 
+/// identfier
 IdentifierAST* Parser::parseIdentifier() {
   if (Tok.is(TokenKind::Identifier)) {
     auto* I = new IdentifierAST(Tok.getText());
@@ -242,6 +246,7 @@ IdentifierAST* Parser::parseIdentifier() {
   return nullptr;
 }
 
+/// statementSequence : statement*
 StatementSequenceAST* Parser::parseStatementSequence() {
   std::vector<StatementAST*> Statements;
   while (!Tok.is(TokenKind::RFigure)) {
@@ -251,6 +256,12 @@ StatementSequenceAST* Parser::parseStatementSequence() {
   return new StatementSequenceAST(Statements);
 }
 
+/// statement
+/// : variableDeclaration
+/// | ifStatement
+/// | whileStatement
+/// | returnStatement
+/// | (assignStatement ";")
 // TODO
 StatementAST* Parser::parseStatement() {
   auto* Statement = parseAssignStatement();
@@ -258,6 +269,7 @@ StatementAST* Parser::parseStatement() {
   return Statement;
 }
 
+/// assignStatement : expression ( "=" expression)?
 AssignStatementAST* Parser::parseAssignStatement() {
   auto* LHS = parseExpression();
   ExpressionAST* RHS = nullptr;
@@ -268,6 +280,7 @@ AssignStatementAST* Parser::parseAssignStatement() {
   return new AssignStatementAST(LHS, RHS);
 }
 
+/// argumentList : ( type identifier ( "," type identifier )* )?
 ArgumentsListAST* Parser::parseArgumentsList() {
   llvm::SmallVector<IdentifierAST*> Idents;
   llvm::SmallVector<TypeAST*> Types;
@@ -289,6 +302,7 @@ ArgumentsListAST* Parser::parseArgumentsList() {
   return new ArgumentsListAST(Idents, Types);
 }
 
+/// expressionList : ( expression ( "," expression )* )? ;
 ExpressionsListAST* Parser::parseExpressionsList() {
   llvm::SmallVector<ExpressionAST*> Exprs;
   if (Tok.is(TokenKind::RParen)) {
