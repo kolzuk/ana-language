@@ -43,13 +43,11 @@ void quicksort(int arr[], int l, int r) {
 
 3. Вычисление всех простых чисел до `n`:
 ```c
-int *getPrimeNumbers(int n) {
-  int *numbers = (int *) malloc(n * sizeof(int));
+void getPrimeNumbers(int numbers[], int n) {
   numbers[0] = 0;
   numbers[1] = 0;
-  for (int i = 2; i <= n; ++i) {
+  for (int i = 2; i <= n; ++i)
     numbers[i] = 1;
-  }
 
   for (int i = 2; i <= n; ++i) {
     if (numbers[i] == 1) {
@@ -60,8 +58,6 @@ int *getPrimeNumbers(int n) {
       }
     }
   }
-
-  return numbers;
 }
 ```
 

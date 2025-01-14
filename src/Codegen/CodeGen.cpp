@@ -10,17 +10,20 @@
 using namespace llvm;
 
 namespace {
+
 class ToIRVisitor : public ASTVisitor {
   Module* M;
   IRBuilder<> Builder;
   Type* VoidTy;
   Type* Int64Ty;
   ArrayType* ArrayTy;
-  PointerType* PtrTy;
+  Type* PtrTy;
   Value* V = nullptr;
   Function* CurrentFunction = nullptr;
   StringMap<Function*> FunctionsMap;
   StringMap<Value*> NameMap;
+  DenseMap<Value*, StringRef> ValueMap;
+  StringMap<Type*> TypeMap;
   Function* PrintFunction;
  public:
   ToIRVisitor(Module* M) : M(M), Builder(M->getContext()) {
@@ -50,62 +53,45 @@ class ToIRVisitor : public ASTVisitor {
 
   void visit(VariableDeclarationAST& Node) override {
     TypeAST::TypeKind Type = Node.T->Type;
-    IdentifierAST* Name = Node.Ident;
+    llvm::StringRef Name = Node.Ident->Value;
 
     AllocaInst* Alloca = nullptr;
-    if (Type == TypeAST::TypeKind::Array) {
+    if (Type == TypeAST::Array) {
       Node.T->accept(*this);
 
-      Alloca = Builder.CreateAlloca(ArrayTy, V, Name->Value);
+      Alloca = Builder.CreateAlloca(ArrayTy, V, Name);
+      TypeMap[Name] = ArrayTy;
       if (Node.Expr) {
         Node.Expr->accept(*this);
         Builder.CreateStore(V, Alloca);
       }
-    } else if (Type == TypeAST::TypeKind::Integer) {
-      Alloca = Builder.CreateAlloca(Int64Ty, nullptr, Name->Value);
+    } else if (Type == TypeAST::Integer) {
+      Alloca = Builder.CreateAlloca(Int64Ty, nullptr, Name);
       Alloca->setAlignment(Align(8));
+      TypeMap[Name] = Int64Ty;
       if (Node.Expr) {
         Node.Expr->accept(*this);
         Builder.CreateStore(V, Alloca)->setAlignment(Align(8));
       }
     }
 
-    NameMap[Name->Value] = Alloca;
+    NameMap[Name] = Alloca;
+    ValueMap[Alloca] = Name;
   }
 
   virtual void visit(FunctionDeclarationAST& Node) override {
     SmallVector<Type*> ArgTypes;
-    for (auto* ArgType : Node.Arguments->Types) {
-      switch (ArgType->Type) {
-        case TypeAST::Array:
-          ArgTypes.push_back(PtrTy);
-          break;
-        case TypeAST::Integer:
-          ArgTypes.push_back(Int64Ty);
-          break;
-        case TypeAST::Void:
-          ArgTypes.push_back(VoidTy);
-          break;
-      }
-    }
+    for (auto* ArgType : Node.Arguments->Types)
+      ArgTypes.push_back(convertType(ArgType));
 
-    FunctionType* FunctionTy = nullptr;
-
-    switch (Node.ReturnType->Type) {
-      case TypeAST::Array:
-        FunctionTy = FunctionType::get(PtrTy, ArgTypes, false);
-        break;
-      case TypeAST::Integer:
-        FunctionTy = FunctionType::get(Int64Ty, ArgTypes, false);
-        break;
-      case TypeAST::Void:
-        FunctionTy = FunctionType::get(VoidTy, ArgTypes, false);
-    }
+    FunctionType* FunctionTy =
+        FunctionType::get(convertType(Node.ReturnType), ArgTypes, false);
 
     llvm::StringRef FunctionName = Node.Ident->Value;
     CurrentFunction = Function::Create(
         FunctionTy, GlobalValue::ExternalLinkage, FunctionName, M);
     NameMap[FunctionName] = CurrentFunction;
+    TypeMap[FunctionName] = FunctionTy;
     BasicBlock* BB = BasicBlock::Create(M->getContext(),"entry", CurrentFunction);
     Builder.SetInsertPoint(BB);
 
@@ -113,10 +99,23 @@ class ToIRVisitor : public ASTVisitor {
     for (auto& Arg : CurrentFunction->args()) {
       llvm::StringRef ArgName = Node.Arguments->Idents[Idx]->Value;
       Arg.setName(ArgName);
-      ++Idx;
-      auto* Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
+
+      AllocaInst* Alloca = nullptr;
+      switch (Node.Arguments->Types[Idx]->Type) {
+        case TypeAST::Array:
+          Alloca = Builder.CreateAlloca(PtrTy, nullptr);
+          TypeMap[ArgName] = PtrTy;
+          break;
+        case TypeAST::Integer:
+          Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
+          TypeMap[ArgName] = Int64Ty;
+          break;
+        case TypeAST::Void:break;
+      }
+
       Builder.CreateStore(&Arg, Alloca)->setAlignment(Align(8));
       NameMap[ArgName] = Alloca;
+      ++Idx;
     }
 
     Node.Body->accept(*this);
@@ -152,7 +151,13 @@ class ToIRVisitor : public ASTVisitor {
     Builder.CreateRet(V);
   }
 
-  virtual void visit(AssignStatementAST&) override {
+  virtual void visit(AssignStatementAST& Node) override {
+    Node.LHS->accept(*this);
+    auto* LHS = V;
+
+    Node.RHS->accept(*this);
+    auto* RHS = V;
+    Builder.CreateStore(RHS, LHS);
   }
 
   virtual void visit(PrintStatementAST& Node) override {
@@ -163,7 +168,6 @@ class ToIRVisitor : public ASTVisitor {
 
     Builder.CreateCall(PrintFunction, {FormatStr, ValueToPrint});
   }
-
 
   virtual void visit(IntegerTypeAST&) override {
   }
@@ -235,10 +239,10 @@ class ToIRVisitor : public ASTVisitor {
     V = Result;
   }
 
-  virtual void visit(AddOperatorAST&) override {
+  void visit(AddOperatorAST&) override {
   }
 
-  virtual void visit(TermAST& Node) override {
+  void visit(TermAST& Node) override {
     Node.MulOperand->accept(*this);
     Value* Result = V;
     auto MulOps = Node.MulOperators;
@@ -266,24 +270,20 @@ class ToIRVisitor : public ASTVisitor {
     Node.Factor->accept(*this);
   }
 
-  virtual void visit(UnaryOperatorAST&) override {
+  void visit(UnaryOperatorAST&) override {
   }
 
-  virtual void visit(IdentifierAST& Node) override {
-    auto* Load = Builder.CreateLoad(Int64Ty, NameMap[Node.Value]);
-    Load->setAlignment(Align(8));
-    V = Load;
+  void visit(IdentifierAST& Node) override {
+    V = NameMap[Node.Value];
   }
 
-  virtual void visit(IntegerLiteralAST& Node) override {
+  void visit(IntegerLiteralAST& Node) override {
     V = ConstantInt::get(Int64Ty, std::stoll(Node.Value.str()));
   }
 
-  virtual void visit(ArrayInitializationAST& Node) override {
-    llvm::errs() << "Visiting node: " << typeid(Node).name() << "\n";
-
+  void visit(ArrayInitializationAST& Node) override {
     SmallVector<Constant*> Elements;
-    for (auto& Expr : Node.Exprs) {
+    for (auto Expr : Node.Exprs) {
       Expr->accept(*this);
       if (auto* ConstVal = dyn_cast<Constant>(V)) {
         Elements.push_back(ConstVal);
@@ -297,11 +297,21 @@ class ToIRVisitor : public ASTVisitor {
     V = ConstantArray::get(ArrayTy, ArrayRef(Elements));
   }
 
-  virtual void visit(GetByIndexAST& Node) override {
+  void visit(GetByIndexAST& Node) override {
+    llvm::StringRef ArrayName = Node.Ident->Value;
 
+    Node.Index->accept(*this);
+    auto* Index =  V;
+
+    // TODO
+//    auto* Ptr = Builder.CreateInBoundsGEP(ArrayTy, NameMap[ArrayName],
+//    {ConstantInt::get(Int64Ty, 0), Index});
+    auto* LoadedPointer = Builder.CreateLoad(PtrTy, NameMap[ArrayName]);
+    auto* Ptr = Builder.CreateInBoundsGEP(Int64Ty, LoadedPointer, {Index});
+    V = Builder.CreateLoad(Int64Ty, Ptr);
   }
 
-  virtual void visit(ExpressionFactorAST& Node) override {
+  void visit(ExpressionFactorAST& Node) override {
     Node.Expr->accept(*this);
   }
 
@@ -319,6 +329,17 @@ class ToIRVisitor : public ASTVisitor {
                        CallableFunction,
                        Params);
   }
+
+  Type* convertType(TypeAST* Ty) {
+    switch (Ty->Type) {
+      case TypeAST::Integer:
+        return Int64Ty;
+      case TypeAST::Array:
+        return PtrTy;
+      case TypeAST::Void:
+        return VoidTy;
+    }
+  }
 };
 }
 
@@ -328,7 +349,7 @@ void CodeGen::compile(AST* Tree, std::string& SourceFilename) {
   ToIRVisitor ToIR(M);
   ToIR.run(Tree);
 
-  auto OutputFilename = SourceFilename + ".ll";
+  std::string OutputFilename = SourceFilename + ".ll";
   std::error_code EC;
   sys::fs::OpenFlags OpenFlags = sys::fs::OF_None;
   auto Out = std::make_unique<llvm::ToolOutputFile>(
