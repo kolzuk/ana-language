@@ -1,0 +1,11 @@
+fun getSum(array[2] arr) -> integer {
+    print arr[0];
+    print arr[1];
+    return arr[0] + arr[1];
+}
+
+fun main() -> integer {
+    array[2] a = [100, 2];
+    print getSum(a);
+    return 0;
+}
