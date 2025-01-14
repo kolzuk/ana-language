@@ -20,7 +20,9 @@ set(LLVM_LINK_COMPONENTS
         ExecutionEngine
         MC
         MCJIT
+        OrcJIT
         Support
+        native
         nativecodegen
 )
 

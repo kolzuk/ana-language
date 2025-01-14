@@ -5,5 +5,7 @@ add_llvm_executable(ana_language main.cpp
         Codegen/CodeGen.cpp
 )
 
+add_llvm_executable(ana_jit Jit/JIT.cpp)
+
 target_include_directories(ana_language PRIVATE "${PROJECT_SOURCE_DIR}/include")
 
