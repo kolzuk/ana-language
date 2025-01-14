@@ -284,6 +284,9 @@ StatementAST* Parser::parseStatement() {
   if (Tok.isOneOf(TokenKind::KW_integer, TokenKind::KW_array)) {
     return parseVariableDeclaration();
   }
+  if (Tok.is(TokenKind::KW_print)) {
+    return parsePrintStatement();
+  }
   auto* Statement = parseAssignStatement();
   consume(TokenKind::Semicolon);
   return Statement;
@@ -421,3 +424,10 @@ ReturnStatementAST* Parser::parseReturnStatement() {
   return new ReturnStatementAST(Expr);
 }
 
+/// printStatement : "print" expression ";"
+PrintStatementAST *Parser::parsePrintStatement() {
+  consume(TokenKind::KW_print);
+  auto* Expr = parseExpression();
+  consume(TokenKind::Semicolon);
+  return new PrintStatementAST(Expr);
+}

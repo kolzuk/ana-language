@@ -20,6 +20,7 @@ class IfStatementAST;
 class WhileStatementAST;
 class ReturnStatementAST;
 class AssignStatementAST;
+class PrintStatementAST;
 
 class TypeAST;
 class IntegerTypeAST;
@@ -53,13 +54,14 @@ class ASTVisitor {
   virtual void visit(FunctionDeclarationAST&) = 0;
 
   virtual void visit(StatementSequenceAST&) = 0;
-  virtual void visit(StatementAST&) = 0;
+  virtual void visit(StatementAST&) {};
   virtual void visit(IfStatementAST&) = 0;
   virtual void visit(WhileStatementAST&) = 0;
   virtual void visit(ReturnStatementAST&) = 0;
   virtual void visit(AssignStatementAST&) = 0;
+  virtual void visit(PrintStatementAST&) = 0;
 
-  virtual void visit(TypeAST&) = 0;
+  virtual void visit(TypeAST&) {};
   virtual void visit(IntegerTypeAST&) = 0;
   virtual void visit(ArrayTypeAST&) = 0;
   virtual void visit(ArgumentsListAST&) = 0;
@@ -135,7 +137,11 @@ class StatementSequenceAST : public AST {
   }
 };
 
-class StatementAST : public DeclarationAST {};
+class StatementAST : public DeclarationAST {
+ public:
+  virtual ~StatementAST() = default;
+  virtual void accept(ASTVisitor& V) = 0;
+};
 
 class VariableDeclarationAST : public StatementAST {
  public:
@@ -200,10 +206,31 @@ class AssignStatementAST : public StatementAST {
   }
 };
 
-class TypeAST : public AST {};
+class PrintStatementAST : public StatementAST {
+ public:
+  ExpressionAST* Expr;
+  explicit PrintStatementAST(ExpressionAST* Expr) : Expr(Expr) {}
+
+  void accept(ASTVisitor& V) override {
+    V.visit(*this);
+  }
+};
+class TypeAST : public AST {
+ public:
+  enum TypeKind {
+    Integer,
+    Array,
+    Void
+  };
+  TypeKind Type;
+  explicit TypeAST(enum TypeKind Type) : Type(Type) {}
+  virtual ~TypeAST() = default;
+  virtual void accept(ASTVisitor& V) = 0;
+};
 
 class VoidTypeAST : public TypeAST {
  public:
+  VoidTypeAST() : TypeAST(TypeKind::Void) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -211,6 +238,7 @@ class VoidTypeAST : public TypeAST {
 
 class IntegerTypeAST : public TypeAST {
  public:
+  IntegerTypeAST() : TypeAST(TypeKind::Integer) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -220,7 +248,7 @@ class ArrayTypeAST : public TypeAST {
  public:
   IntegerLiteralAST* Size;
   explicit ArrayTypeAST(IntegerLiteralAST* Size)
-      : Size(Size) {}
+      : Size(Size), TypeAST(TypeKind::Array) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -355,10 +383,10 @@ class FactorAST : public AST {
 class GetByIndexAST : public FactorAST {
  public:
   IdentifierAST* Ident;
-  ExpressionAST* Expr;
+  ExpressionAST* Index;
 
   explicit GetByIndexAST(IdentifierAST* Ident, ExpressionAST* Expr)
-      : Ident(Ident), Expr(Expr) {}
+      : Ident(Ident), Index(Expr) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }

@@ -60,6 +60,8 @@ void Lexer::next(Token& Token) {
       Kind = TokenKind::KW_array;
     } else if (Name == "fun") {
       Kind = TokenKind::KW_fun;
+    } else if (Name == "print") {
+      Kind = TokenKind::KW_print;
     } else {
       Kind = TokenKind::Identifier;
     }

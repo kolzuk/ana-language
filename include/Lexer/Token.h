@@ -45,6 +45,7 @@ enum class TokenKind : short {
   KW_while,
   KW_return,
   KW_fun,
+  KW_print,
 
   EOI, // End of input
   Unknown,

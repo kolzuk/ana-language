@@ -47,7 +47,7 @@ class Parser {
   IfStatementAST* parseIfStatement();
   WhileStatementAST* parseWhileStatement();
   ReturnStatementAST* parseReturnStatement();
-
+  PrintStatementAST* parsePrintStatement();
 
   ArgumentsListAST* parseArgumentsList();
   ExpressionsListAST* parseExpressionsList();

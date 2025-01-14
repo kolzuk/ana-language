@@ -93,6 +93,7 @@ statement
     | whileStatement
     | returnStatement
     | (assignStatement ";")
+    | "print" expression
 ifStatement
     : "if" "(" expression ")" "{" statementSequence "}"
     ( "else" "{" statementSequence "}" )?
