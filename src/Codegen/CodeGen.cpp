@@ -137,21 +137,13 @@ class ToIRVisitor : public ASTVisitor {
 
     llvm::BasicBlock* IfBodyBB = llvm::BasicBlock::Create(
         M->getContext(), "if.body", CurrentFunction);
-    llvm::BasicBlock* ElseBodyBB = llvm::BasicBlock::Create(
-        M->getContext(), "else.body", CurrentFunction);
     llvm::BasicBlock* AfterIfBB = llvm::BasicBlock::Create(
         M->getContext(), "after.if", CurrentFunction);
 
-    Builder.CreateCondBr(CondResult, IfBodyBB, ElseBodyBB);
+    Builder.CreateCondBr(CondResult, IfBodyBB, AfterIfBB);
 
     Builder.SetInsertPoint(IfBodyBB);
     Node.Body->accept(*this);
-    Builder.CreateBr(AfterIfBB);
-    Builder.SetInsertPoint(ElseBodyBB);
-    if (Node.ElseBody) {
-      Node.Body->accept(*this);
-    }
-    Builder.CreateBr(AfterIfBB);
 
     Builder.SetInsertPoint(AfterIfBB);
   }
