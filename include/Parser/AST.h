@@ -21,6 +21,8 @@ class WhileStatementAST;
 class ReturnStatementAST;
 class AssignStatementAST;
 class PrintStatementAST;
+class BreakStatementAST;
+class ContinueStatementAST;
 
 class TypeAST;
 class IntegerTypeAST;
@@ -60,6 +62,8 @@ class ASTVisitor {
   virtual void visit(ReturnStatementAST&) = 0;
   virtual void visit(AssignStatementAST&) = 0;
   virtual void visit(PrintStatementAST&) = 0;
+  virtual void visit(BreakStatementAST&) = 0;
+  virtual void visit(ContinueStatementAST&) = 0;
 
   virtual void visit(TypeAST&) {};
   virtual void visit(IntegerTypeAST&) = 0;
@@ -215,6 +219,19 @@ class PrintStatementAST : public StatementAST {
     V.visit(*this);
   }
 };
+
+class BreakStatementAST : public StatementAST {
+  void accept(ASTVisitor& V) override {
+    V.visit(*this);
+  }
+};
+
+class ContinueStatementAST : public StatementAST {
+  void accept(ASTVisitor& V) override {
+    V.visit(*this);
+  }
+};
+
 class TypeAST : public AST {
  public:
   enum TypeKind {
@@ -338,7 +355,8 @@ class MulOperatorAST : public AST {
  public:
   enum MulOperatorId : short {
     Multiple,
-    Divide
+    Divide,
+    Modulo
   };
 
   MulOperatorId MulOperatorKind;

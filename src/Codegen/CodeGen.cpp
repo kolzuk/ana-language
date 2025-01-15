@@ -26,8 +26,9 @@ class ToIRVisitor : public ASTVisitor {
   StringMap<Type*> TypeMap;
   Function* PrintFunction;
   Align Int64Align = Align(8);
+  llvm::BasicBlock* CurrentWhileBodyBB = nullptr;
+  llvm::BasicBlock* CurrentAfterWhileBB = nullptr;
   bool IsAssignmentFlag = false;
-  bool IsReturnStatement = false;
  public:
   ToIRVisitor(Module* M) : M(M), Builder(M->getContext()) {
     VoidTy = Type::getVoidTy(M->getContext());
@@ -107,12 +108,10 @@ class ToIRVisitor : public ASTVisitor {
 
       AllocaInst* Alloca = nullptr;
       switch (Node.Arguments->Types[Idx]->Type) {
-        case TypeAST::Array:
-          Alloca = Builder.CreateAlloca(PtrTy, nullptr);
+        case TypeAST::Array:Alloca = Builder.CreateAlloca(PtrTy, nullptr);
           TypeMap[ArgName] = PtrTy;
           break;
-        case TypeAST::Integer:
-          Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
+        case TypeAST::Integer:Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
           TypeMap[ArgName] = Int64Ty;
           break;
         case TypeAST::Void:break;
@@ -146,10 +145,23 @@ class ToIRVisitor : public ASTVisitor {
     Builder.SetInsertPoint(IfBodyBB);
     IsReturnStatement = false;
     Node.Body->accept(*this);
-    if (!IsReturnStatement) {
+    ReturnStatementAST* Return = nullptr;
+    if (!Node.Body->Statements.empty()) {
+      Return = dynamic_cast<ReturnStatementAST*>(Node.Body->Statements.back());
+    }
+    if (!Return) {
       Builder.CreateBr(AfterIfBB);
     }
 
+    Builder.SetInsertPoint(ElseBodyBB);
+    Node.ElseBody->accept(*this);
+    Return = nullptr;
+    if (!Node.ElseBody->Statements.empty()) {
+      Return = dynamic_cast<ReturnStatementAST*>(Node.ElseBody->Statements.back());
+    }
+    if (!Return) {
+      Builder.CreateBr(AfterIfBB);
+    }
 
     Builder.SetInsertPoint(AfterIfBB);
   }
@@ -163,6 +175,11 @@ class ToIRVisitor : public ASTVisitor {
     llvm::BasicBlock* AfterWhileBB = llvm::BasicBlock::Create(
         M->getContext(), "after.while", CurrentFunction);
 
+    auto GlobalWhileBodyBB = CurrentWhileBodyBB;
+    auto GlobalAfterWhileBB = CurrentAfterWhileBB;
+    CurrentWhileBodyBB = WhileBodyBB;
+    CurrentAfterWhileBB = AfterWhileBB;
+
     Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
 
     Builder.SetInsertPoint(WhileBodyBB);
@@ -171,11 +188,21 @@ class ToIRVisitor : public ASTVisitor {
     CondResult = V;
     Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
 
+    CurrentWhileBodyBB = GlobalWhileBodyBB;
+    CurrentAfterWhileBB = GlobalAfterWhileBB;
+
     Builder.SetInsertPoint(AfterWhileBB);
   }
 
+  virtual void visit(BreakStatementAST& Node) override {
+    Builder.CreateBr(CurrentAfterWhileBB);
+  }
+
+  virtual void visit(ContinueStatementAST& Node) override {
+    Builder.CreateBr(CurrentWhileBodyBB);
+  }
+
   virtual void visit(ReturnStatementAST& Node) override {
-    IsReturnStatement = true;
     if (Node.Expr == nullptr) {
       Builder.CreateRetVoid();
       return;
@@ -283,6 +310,8 @@ class ToIRVisitor : public ASTVisitor {
           break;
         case MulOperatorAST::Divide:Result = Builder.CreateSDiv(getValue(Result), getValue(FactorVal));
           break;
+        case MulOperatorAST::Modulo:Result = Builder.CreateSRem(getValue(Result), getValue(FactorVal));
+          break;
       }
     }
 
@@ -297,7 +326,8 @@ class ToIRVisitor : public ASTVisitor {
     if (Node.Operator) {
       switch (Node.Operator->Kind) {
         case UnaryOperatorAST::UnaryOperatorKind::Minus:
-          V = Builder.CreateMul(ConstantInt::get(Int64Ty, -1l), getValue(V));
+          V = Builder.CreateMul(ConstantInt::get(Int64Ty, -1l),
+                                getValue(V));
           break;
         case UnaryOperatorAST::Plus:break;
       }
@@ -396,7 +426,7 @@ class ToIRVisitor : public ASTVisitor {
 };
 }
 
-void CodeGen::compile(AST* Tree, std::string& SourceFilename) {
+void CodeGen::compile(AST* Tree, const std::string& SourceFilename) {
   LLVMContext Ctx;
   auto* M = new Module(SourceFilename, Ctx);
   ToIRVisitor ToIR(M);
