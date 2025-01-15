@@ -128,14 +128,14 @@ void SemaVisitor::visit(SimpleExpressionAST& Node) {
 
 void SemaVisitor::visit(AddOperatorAST& Node) {
   // TODO
-//  if (Node.getLeft())
-//    Node.getLeft()->accept(*this);
-//  else
-//    HasError = true;
-//  if (Node.getRight())
-//    Node.getRight()->accept(*this);
-//  else
-//    HasError = true;
+  if (Node.getLeft())
+    Node.getLeft()->accept(*this);
+  else
+    HasError = true;
+  if (Node.getRight())
+    Node.getRight()->accept(*this);
+  else
+    HasError = true;
 };
 
 void SemaVisitor::visit(TermAST& Node) {
