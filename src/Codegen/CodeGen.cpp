@@ -27,6 +27,7 @@ class ToIRVisitor : public ASTVisitor {
   Function* PrintFunction;
   Align Int64Align = Align(8);
   bool IsAssignmentFlag = false;
+  bool IsReturnStatement = false;
  public:
   ToIRVisitor(Module* M) : M(M), Builder(M->getContext()) {
     VoidTy = Type::getVoidTy(M->getContext());
@@ -143,7 +144,12 @@ class ToIRVisitor : public ASTVisitor {
     Builder.CreateCondBr(CondResult, IfBodyBB, AfterIfBB);
 
     Builder.SetInsertPoint(IfBodyBB);
+    IsReturnStatement = false;
     Node.Body->accept(*this);
+    if (!IsReturnStatement) {
+      Builder.CreateBr(AfterIfBB);
+    }
+
 
     Builder.SetInsertPoint(AfterIfBB);
   }
@@ -169,6 +175,7 @@ class ToIRVisitor : public ASTVisitor {
   }
 
   virtual void visit(ReturnStatementAST& Node) override {
+    IsReturnStatement = true;
     if (Node.Expr == nullptr) {
       Builder.CreateRetVoid();
       return;
