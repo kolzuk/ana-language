@@ -45,6 +45,7 @@ namespace fs = std::filesystem;
 
 void compileAllFilesInDir(const std::string& Dir) {
   if (!fs::exists(Dir) || !fs::is_directory(Dir)) {
+    llvm::errs() << "Not found folder " << Dir << "\n";
     return;
   }
 
