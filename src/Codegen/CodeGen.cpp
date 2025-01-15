@@ -147,7 +147,6 @@ class ToIRVisitor : public ASTVisitor {
     Builder.SetInsertPoint(IfBodyBB);
     Node.Body->accept(*this);
     Builder.CreateBr(AfterIfBB);
-
     Builder.SetInsertPoint(ElseBodyBB);
     if (Node.ElseBody) {
       Node.Body->accept(*this);
@@ -156,6 +155,7 @@ class ToIRVisitor : public ASTVisitor {
 
     Builder.SetInsertPoint(AfterIfBB);
   }
+
   virtual void visit(WhileStatementAST& Node) override {
     Node.Condition->accept(*this);
     Value* CondResult = V;
