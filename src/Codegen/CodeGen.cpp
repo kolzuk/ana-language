@@ -129,23 +129,48 @@ class ToIRVisitor : public ASTVisitor {
   }
 
   virtual void visit(IfStatementAST& Node) override {
-    ;
     Node.Condition->accept(*this);
     Value* CondResult = V;
 
     llvm::BasicBlock* IfBodyBB = llvm::BasicBlock::Create(
         M->getContext(), "if.body", CurrentFunction);
+    llvm::BasicBlock* ElseBodyBB = llvm::BasicBlock::Create(
+        M->getContext(), "else.body", CurrentFunction);
     llvm::BasicBlock* AfterIfBB = llvm::BasicBlock::Create(
         M->getContext(), "after.if", CurrentFunction);
 
-    Builder.CreateCondBr(CondResult, IfBodyBB, AfterIfBB);
+    Builder.CreateCondBr(CondResult, IfBodyBB, ElseBodyBB);
 
     Builder.SetInsertPoint(IfBodyBB);
     Node.Body->accept(*this);
+    Builder.CreateBr(AfterIfBB);
+
+    Builder.SetInsertPoint(ElseBodyBB);
+    if (Node.ElseBody) {
+      Node.Body->accept(*this);
+    }
+    Builder.CreateBr(AfterIfBB);
 
     Builder.SetInsertPoint(AfterIfBB);
   }
-  virtual void visit(WhileStatementAST&) override {
+  virtual void visit(WhileStatementAST& Node) override {
+    Node.Condition->accept(*this);
+    Value* CondResult = V;
+
+    llvm::BasicBlock* WhileBodyBB = llvm::BasicBlock::Create(
+        M->getContext(), "while.body", CurrentFunction);
+    llvm::BasicBlock* AfterWhileBB = llvm::BasicBlock::Create(
+        M->getContext(), "after.while", CurrentFunction);
+
+    Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
+
+    Builder.SetInsertPoint(WhileBodyBB);
+    Node.Body->accept(*this);
+    Node.Condition->accept(*this);
+    CondResult = V;
+    Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
+
+    Builder.SetInsertPoint(AfterWhileBB);
   }
 
   virtual void visit(ReturnStatementAST& Node) override {
