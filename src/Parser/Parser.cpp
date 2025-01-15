@@ -155,7 +155,7 @@ TermAST* Parser::parseTerm() {
   llvm::SmallVector<MulOperatorAST*> MulOperators;
   llvm::SmallVector<MulOperandAST*> Factors;
 
-  while (Tok.isOneOf(TokenKind::Star, TokenKind::Slash)) {
+  while (Tok.isOneOf(TokenKind::Star, TokenKind::Slash, TokenKind::Percent)) {
     auto* MulOper = parseMulOperator();
     auto* Factor = parseMulOperand();
     MulOperators.push_back(MulOper);
@@ -165,13 +165,15 @@ TermAST* Parser::parseTerm() {
   return new TermAST(FirstFactor, MulOperators, Factors);
 }
 
-/// mulOperator : "*" | "/";
+/// mulOperator : "*" | "/" | "%" ;
 MulOperatorAST* Parser::parseMulOperator() {
   MulOperatorAST* MulOper = nullptr;
   switch (Tok.getKind()) {
     case (TokenKind::Star):MulOper = new MulOperatorAST(MulOperatorAST::Multiple);
       break;
     case (TokenKind::Slash):MulOper = new MulOperatorAST(MulOperatorAST::Divide);
+      break;
+    case (TokenKind::Percent):MulOper = new MulOperatorAST(MulOperatorAST::Modulo);
       break;
     default:error();
   }
@@ -270,6 +272,9 @@ StatementSequenceAST* Parser::parseStatementSequence() {
 /// | ifStatement
 /// | whileStatement
 /// | returnStatement
+/// | printStatement
+/// | breakStatement
+/// | continueStatement
 /// | (assignStatement ";")
 StatementAST* Parser::parseStatement() {
   if (Tok.is(TokenKind::KW_if)) {
@@ -286,6 +291,12 @@ StatementAST* Parser::parseStatement() {
   }
   if (Tok.is(TokenKind::KW_print)) {
     return parsePrintStatement();
+  }
+  if (Tok.is(TokenKind::KW_break)) {
+    return parseBreakStatement();
+  }
+  if (Tok.is(TokenKind::KW_continue)) {
+    return parseContinueStatement();
   }
   auto* Statement = parseAssignStatement();
   consume(TokenKind::Semicolon);
@@ -425,9 +436,23 @@ ReturnStatementAST* Parser::parseReturnStatement() {
 }
 
 /// printStatement : "print" expression ";"
-PrintStatementAST *Parser::parsePrintStatement() {
+PrintStatementAST* Parser::parsePrintStatement() {
   consume(TokenKind::KW_print);
   auto* Expr = parseExpression();
   consume(TokenKind::Semicolon);
   return new PrintStatementAST(Expr);
+}
+
+/// breakStatement : "break" ";"
+BreakStatementAST* Parser::parseBreakStatement() {
+  consume(TokenKind::KW_break);
+  consume(TokenKind::Semicolon);
+  return new BreakStatementAST();
+}
+
+/// breakStatement : "continue" ";"
+ContinueStatementAST* Parser::parseContinueStatement() {
+  consume(TokenKind::KW_continue);
+  consume(TokenKind::Semicolon);
+  return new ContinueStatementAST();
 }

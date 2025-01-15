@@ -26,6 +26,9 @@ class ToIRVisitor : public ASTVisitor {
   StringMap<Type*> TypeMap;
   Function* PrintFunction;
   Align Int64Align = Align(8);
+  llvm::BasicBlock* CurrentWhileBodyBB = nullptr;
+  llvm::BasicBlock* CurrentAfterWhileBB = nullptr;
+
  public:
   ToIRVisitor(Module* M) : M(M), Builder(M->getContext()) {
     VoidTy = Type::getVoidTy(M->getContext());
@@ -153,6 +156,7 @@ class ToIRVisitor : public ASTVisitor {
 
     Builder.SetInsertPoint(AfterIfBB);
   }
+
   virtual void visit(WhileStatementAST& Node) override {
     Node.Condition->accept(*this);
     Value* CondResult = V;
@@ -162,6 +166,11 @@ class ToIRVisitor : public ASTVisitor {
     llvm::BasicBlock* AfterWhileBB = llvm::BasicBlock::Create(
         M->getContext(), "after.while", CurrentFunction);
 
+    auto GlobalWhileBodyBB = CurrentWhileBodyBB;
+    auto GlobalAfterWhileBB = CurrentAfterWhileBB;
+    CurrentWhileBodyBB = WhileBodyBB;
+    CurrentAfterWhileBB = AfterWhileBB;
+
     Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
 
     Builder.SetInsertPoint(WhileBodyBB);
@@ -170,7 +179,18 @@ class ToIRVisitor : public ASTVisitor {
     CondResult = V;
     Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
 
+    CurrentWhileBodyBB = GlobalWhileBodyBB;
+    CurrentAfterWhileBB = GlobalAfterWhileBB;
+
     Builder.SetInsertPoint(AfterWhileBB);
+  }
+
+  virtual void visit(BreakStatementAST& Node) override {
+    Builder.CreateBr(CurrentAfterWhileBB);
+  }
+
+  virtual void visit(ContinueStatementAST& Node) override {
+    Builder.CreateBr(CurrentWhileBodyBB);
   }
 
   virtual void visit(ReturnStatementAST& Node) override {
@@ -277,6 +297,8 @@ class ToIRVisitor : public ASTVisitor {
         case MulOperatorAST::Multiple:Result = Builder.CreateMul(getValue(Result), getValue(FactorVal));
           break;
         case MulOperatorAST::Divide:Result = Builder.CreateSDiv(getValue(Result), getValue(FactorVal));
+          break;
+        case MulOperatorAST::Modulo:Result = Builder.CreateSRem(getValue(Result), getValue(FactorVal));
           break;
       }
     }
