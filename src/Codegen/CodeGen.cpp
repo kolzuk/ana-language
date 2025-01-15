@@ -25,6 +25,7 @@ class ToIRVisitor : public ASTVisitor {
   DenseMap<Value*, StringRef> ValueMap;
   StringMap<Type*> TypeMap;
   Function* PrintFunction;
+  Align Int64Align = Align(8);
  public:
   ToIRVisitor(Module* M) : M(M), Builder(M->getContext()) {
     VoidTy = Type::getVoidTy(M->getContext());
@@ -67,11 +68,13 @@ class ToIRVisitor : public ASTVisitor {
       }
     } else if (Type == TypeAST::Integer) {
       Alloca = Builder.CreateAlloca(Int64Ty, nullptr, Name);
-      Alloca->setAlignment(Align(8));
+      Alloca->setAlignment(Int64Align);
       TypeMap[Name] = Int64Ty;
       if (Node.Expr) {
         Node.Expr->accept(*this);
-        Builder.CreateStore(V, Alloca)->setAlignment(Align(8));
+        Builder.CreateStore(getValue(V), Alloca)->setAlignment(Int64Align);
+      } else {
+        Builder.CreateStore(ConstantInt::get(Int64Ty, 0l), Alloca)->setAlignment(Int64Align);
       }
     }
 
@@ -92,7 +95,7 @@ class ToIRVisitor : public ASTVisitor {
         FunctionTy, GlobalValue::ExternalLinkage, FunctionName, M);
     NameMap[FunctionName] = CurrentFunction;
     TypeMap[FunctionName] = FunctionTy;
-    BasicBlock* BB = BasicBlock::Create(M->getContext(),"entry", CurrentFunction);
+    BasicBlock* BB = BasicBlock::Create(M->getContext(), "entry", CurrentFunction);
     Builder.SetInsertPoint(BB);
 
     unsigned Idx = 0;
@@ -102,18 +105,16 @@ class ToIRVisitor : public ASTVisitor {
 
       AllocaInst* Alloca = nullptr;
       switch (Node.Arguments->Types[Idx]->Type) {
-        case TypeAST::Array:
-          Alloca = Builder.CreateAlloca(PtrTy, nullptr);
+        case TypeAST::Array:Alloca = Builder.CreateAlloca(PtrTy, nullptr);
           TypeMap[ArgName] = PtrTy;
           break;
-        case TypeAST::Integer:
-          Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
+        case TypeAST::Integer:Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
           TypeMap[ArgName] = Int64Ty;
           break;
         case TypeAST::Void:break;
       }
 
-      Builder.CreateStore(&Arg, Alloca)->setAlignment(Align(8));
+      Builder.CreateStore(&Arg, Alloca)->setAlignment(Int64Align);
       NameMap[ArgName] = Alloca;
       ++Idx;
     }
@@ -127,46 +128,74 @@ class ToIRVisitor : public ASTVisitor {
     }
   }
 
-  virtual void visit(IfStatementAST& Node) override {;
+  virtual void visit(IfStatementAST& Node) override {
     Node.Condition->accept(*this);
     Value* CondResult = V;
 
     llvm::BasicBlock* IfBodyBB = llvm::BasicBlock::Create(
         M->getContext(), "if.body", CurrentFunction);
+    llvm::BasicBlock* ElseBodyBB = llvm::BasicBlock::Create(
+        M->getContext(), "else.body", CurrentFunction);
     llvm::BasicBlock* AfterIfBB = llvm::BasicBlock::Create(
         M->getContext(), "after.if", CurrentFunction);
 
-    Builder.CreateCondBr(CondResult, IfBodyBB, AfterIfBB);
+    Builder.CreateCondBr(CondResult, IfBodyBB, ElseBodyBB);
 
     Builder.SetInsertPoint(IfBodyBB);
     Node.Body->accept(*this);
+    Builder.CreateBr(AfterIfBB);
+
+    Builder.SetInsertPoint(ElseBodyBB);
+    if (Node.ElseBody) {
+      Node.Body->accept(*this);
+    }
+    Builder.CreateBr(AfterIfBB);
 
     Builder.SetInsertPoint(AfterIfBB);
   }
-  virtual void visit(WhileStatementAST&) override {
+  virtual void visit(WhileStatementAST& Node) override {
+    Node.Condition->accept(*this);
+    Value* CondResult = V;
+
+    llvm::BasicBlock* WhileBodyBB = llvm::BasicBlock::Create(
+        M->getContext(), "while.body", CurrentFunction);
+    llvm::BasicBlock* AfterWhileBB = llvm::BasicBlock::Create(
+        M->getContext(), "after.while", CurrentFunction);
+
+    Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
+
+    Builder.SetInsertPoint(WhileBodyBB);
+    Node.Body->accept(*this);
+    Node.Condition->accept(*this);
+    CondResult = V;
+    Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
+
+    Builder.SetInsertPoint(AfterWhileBB);
   }
 
   virtual void visit(ReturnStatementAST& Node) override {
+    if (Node.Expr == nullptr) {
+      Builder.CreateRetVoid();
+      return;
+    }
     Node.Expr->accept(*this);
-    Builder.CreateRet(V);
+    Builder.CreateRet(getValue(V));
   }
 
   virtual void visit(AssignStatementAST& Node) override {
     Node.LHS->accept(*this);
     auto* LHS = V;
 
-    Node.RHS->accept(*this);
-    auto* RHS = V;
-    Builder.CreateStore(RHS, LHS);
+    if (Node.RHS) {
+      Node.RHS->accept(*this);
+      Builder.CreateStore(getValue(V), LHS)->setAlignment(Int64Align);
+    }
   }
 
   virtual void visit(PrintStatementAST& Node) override {
     auto FormatStr = Builder.CreateGlobalStringPtr("%ld\n");
-
     Node.Expr->accept(*this);
-    Value* ValueToPrint = V;
-
-    Builder.CreateCall(PrintFunction, {FormatStr, ValueToPrint});
+    Builder.CreateCall(PrintFunction, {FormatStr, getValue(V)});
   }
 
   virtual void visit(IntegerTypeAST&) override {
@@ -189,25 +218,21 @@ class ToIRVisitor : public ASTVisitor {
     Value* LHS = V;
     if (Node.RHS) {
       Node.RHS->accept(*this);
-      Value* RHS = V;
+      Value* RHS = getValue(V);
+      LHS = getValue(LHS);
+
       switch (Node.Rel->RelKind) {
-        case RelationAST::Equal:
-          V = Builder.CreateICmpEQ(LHS, RHS);
+        case RelationAST::Equal:V = Builder.CreateICmpEQ(LHS, RHS);
           break;
-        case RelationAST::NotEqual:
-          V = Builder.CreateICmpNE(LHS, RHS);
+        case RelationAST::NotEqual:V = Builder.CreateICmpNE(LHS, RHS);
           break;
-        case RelationAST::Less:
-          V = Builder.CreateICmpSLT(LHS, RHS);
+        case RelationAST::Less:V = Builder.CreateICmpSLT(LHS, RHS);
           break;
-        case RelationAST::LessEq:
-          V = Builder.CreateICmpSLE(LHS, RHS);
+        case RelationAST::LessEq:V = Builder.CreateICmpSLE(LHS, RHS);
           break;
-        case RelationAST::Greater:
-          V = Builder.CreateICmpSGT(LHS, RHS);
+        case RelationAST::Greater:V = Builder.CreateICmpSGT(LHS, RHS);
           break;
-        case RelationAST::GreaterEq:
-          V = Builder.CreateICmpSGE(LHS, RHS);
+        case RelationAST::GreaterEq:V = Builder.CreateICmpSGE(LHS, RHS);
           break;
       }
     } else {
@@ -227,11 +252,9 @@ class ToIRVisitor : public ASTVisitor {
       Terms[i]->accept(*this);
       Value* TermVal = V;
       switch (AddOps[i]->AddOperatorKind) {
-        case AddOperatorAST::Plus:
-          Result = Builder.CreateAdd(Result, TermVal);
+        case AddOperatorAST::Plus:Result = Builder.CreateAdd(getValue(Result), getValue(TermVal));
           break;
-        case AddOperatorAST::Minus:
-          Result = Builder.CreateSub(Result, TermVal);
+        case AddOperatorAST::Minus:Result = Builder.CreateSub(getValue(Result), getValue(TermVal));
           break;
       }
     }
@@ -251,11 +274,9 @@ class ToIRVisitor : public ASTVisitor {
       Factors[i]->accept(*this);
       Value* FactorVal = V;
       switch (MulOps[i]->MulOperatorKind) {
-        case MulOperatorAST::Multiple:
-          Result = Builder.CreateMul(Result, FactorVal);
+        case MulOperatorAST::Multiple:Result = Builder.CreateMul(getValue(Result), getValue(FactorVal));
           break;
-        case MulOperatorAST::Divide:
-          Result = Builder.CreateSDiv(Result, FactorVal);
+        case MulOperatorAST::Divide:Result = Builder.CreateSDiv(getValue(Result), getValue(FactorVal));
           break;
       }
     }
@@ -268,6 +289,14 @@ class ToIRVisitor : public ASTVisitor {
 
   void visit(MulOperandAST& Node) override {
     Node.Factor->accept(*this);
+    if (Node.Operator) {
+      switch (Node.Operator->Kind) {
+        case UnaryOperatorAST::UnaryOperatorKind::Minus:
+          V = Builder.CreateMul(ConstantInt::get(Int64Ty, -1l), getValue(V));
+          break;
+        case UnaryOperatorAST::Plus:break;
+      }
+    }
   }
 
   void visit(UnaryOperatorAST&) override {
@@ -301,7 +330,7 @@ class ToIRVisitor : public ASTVisitor {
     llvm::StringRef ArrayName = Node.Ident->Value;
 
     Node.Index->accept(*this);
-    auto* Index =  V;
+    auto* Index = V;
 
     // TODO
 //    auto* Ptr = Builder.CreateInBoundsGEP(ArrayTy, NameMap[ArrayName],
@@ -326,19 +355,30 @@ class ToIRVisitor : public ASTVisitor {
     }
 
     V = Builder.CreateCall(CallableFunction->getFunctionType(),
-                       CallableFunction,
-                       Params);
+                           CallableFunction,
+                           Params);
   }
 
   Type* convertType(TypeAST* Ty) {
     switch (Ty->Type) {
-      case TypeAST::Integer:
-        return Int64Ty;
-      case TypeAST::Array:
-        return PtrTy;
-      case TypeAST::Void:
-        return VoidTy;
+      case TypeAST::Integer:return Int64Ty;
+      case TypeAST::Array:return PtrTy;
+      case TypeAST::Void:return VoidTy;
     }
+  }
+
+ private:
+  Value* getValue(Value* Value, llvm::Type* Type, Align Align) {
+    if (Value->getType() != PtrTy) {
+      return Value;
+    }
+    auto Load = Builder.CreateLoad(Type, Value);
+    Load->setAlignment(Align);
+    return Load;
+  }
+
+  Value* getValue(Value* Value) {
+    return getValue(Value, Int64Ty, Int64Align);
   }
 };
 }
