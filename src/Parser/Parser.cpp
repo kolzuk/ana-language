@@ -407,7 +407,7 @@ IfStatementAST* Parser::parseIfStatement() {
     return new IfStatementAST(Expr, SS, ElseSS);
   }
 
-  return new IfStatementAST(Expr, SS, nullptr);
+  return new IfStatementAST(Expr, SS, new StatementSequenceAST(std::vector<StatementAST*>()));
 }
 
 /// whileStatement : "while" "(" expression ")" "{" statementSequence "}"

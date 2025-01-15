@@ -108,12 +108,10 @@ class ToIRVisitor : public ASTVisitor {
 
       AllocaInst* Alloca = nullptr;
       switch (Node.Arguments->Types[Idx]->Type) {
-        case TypeAST::Array:
-          Alloca = Builder.CreateAlloca(PtrTy, nullptr);
+        case TypeAST::Array:Alloca = Builder.CreateAlloca(PtrTy, nullptr);
           TypeMap[ArgName] = PtrTy;
           break;
-        case TypeAST::Integer:
-          Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
+        case TypeAST::Integer:Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
           TypeMap[ArgName] = Int64Ty;
           break;
         case TypeAST::Void:break;
@@ -148,13 +146,23 @@ class ToIRVisitor : public ASTVisitor {
 
     Builder.SetInsertPoint(IfBodyBB);
     Node.Body->accept(*this);
-    Builder.CreateBr(AfterIfBB);
+    ReturnStatementAST* Return = nullptr;
+    if (!Node.Body->Statements.empty()) {
+      Return = dynamic_cast<ReturnStatementAST*>(Node.Body->Statements.back());
+    }
+    if (!Return) {
+      Builder.CreateBr(AfterIfBB);
+    }
 
     Builder.SetInsertPoint(ElseBodyBB);
-    if (Node.ElseBody) {
-      Node.Body->accept(*this);
+    Node.ElseBody->accept(*this);
+    Return = nullptr;
+    if (!Node.ElseBody->Statements.empty()) {
+      Return = dynamic_cast<ReturnStatementAST*>(Node.ElseBody->Statements.back());
     }
-    Builder.CreateBr(AfterIfBB);
+    if (!Return) {
+      Builder.CreateBr(AfterIfBB);
+    }
 
     Builder.SetInsertPoint(AfterIfBB);
   }
@@ -218,7 +226,7 @@ class ToIRVisitor : public ASTVisitor {
   }
 
   virtual void visit(PrintStatementAST& Node) override {
-    auto FormatStr = Builder.CreateGlobalStringPtr("%ld\n");
+    auto FormatStr = Builder.CreateGlobalStringPtr("%lld\n");
     Node.Expr->accept(*this);
     Builder.CreateCall(PrintFunction, {FormatStr, getValue(V)});
   }
