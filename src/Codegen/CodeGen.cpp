@@ -292,7 +292,8 @@ class ToIRVisitor : public ASTVisitor {
     if (Node.Operator) {
       switch (Node.Operator->Kind) {
         case UnaryOperatorAST::UnaryOperatorKind::Minus:
-          V = Builder.CreateMul(ConstantInt::get(Int64Ty, -1l), getValue(V));
+          V = Builder.CreateMul(ConstantInt::get(Int64Ty, -1l),
+                                getValue(V));
           break;
         case UnaryOperatorAST::Plus:break;
       }
@@ -383,7 +384,7 @@ class ToIRVisitor : public ASTVisitor {
 };
 }
 
-void CodeGen::compile(AST* Tree, std::string& SourceFilename) {
+void CodeGen::compile(AST* Tree, const std::string& SourceFilename) {
   LLVMContext Ctx;
   auto* M = new Module(SourceFilename, Ctx);
   ToIRVisitor ToIR(M);
