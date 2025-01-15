@@ -191,7 +191,7 @@ class ToIRVisitor : public ASTVisitor {
   }
 
   virtual void visit(PrintStatementAST& Node) override {
-    auto FormatStr = Builder.CreateGlobalStringPtr("%ld\n");
+    auto FormatStr = Builder.CreateGlobalStringPtr("%lld\n");
     Node.Expr->accept(*this);
     Builder.CreateCall(PrintFunction, {FormatStr, getValue(V)});
   }
