@@ -62,6 +62,10 @@ void Lexer::next(Token& Token) {
       Kind = TokenKind::KW_fun;
     } else if (Name == "print") {
       Kind = TokenKind::KW_print;
+    } else if (Name == "break") {
+      Kind = TokenKind::KW_break;
+    } else if (Name == "continue") {
+      Kind = TokenKind::KW_continue;
     } else {
       Kind = TokenKind::Identifier;
     }
