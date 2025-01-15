@@ -26,6 +26,7 @@ class ToIRVisitor : public ASTVisitor {
   StringMap<Type*> TypeMap;
   Function* PrintFunction;
   Align Int64Align = Align(8);
+  bool IsAssignmentFlag = false;
  public:
   ToIRVisitor(Module* M) : M(M), Builder(M->getContext()) {
     VoidTy = Type::getVoidTy(M->getContext());
@@ -105,10 +106,12 @@ class ToIRVisitor : public ASTVisitor {
 
       AllocaInst* Alloca = nullptr;
       switch (Node.Arguments->Types[Idx]->Type) {
-        case TypeAST::Array:Alloca = Builder.CreateAlloca(PtrTy, nullptr);
+        case TypeAST::Array:
+          Alloca = Builder.CreateAlloca(PtrTy, nullptr);
           TypeMap[ArgName] = PtrTy;
           break;
-        case TypeAST::Integer:Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
+        case TypeAST::Integer:
+          Alloca = Builder.CreateAlloca(Int64Ty, nullptr);
           TypeMap[ArgName] = Int64Ty;
           break;
         case TypeAST::Void:break;
@@ -183,13 +186,16 @@ class ToIRVisitor : public ASTVisitor {
   }
 
   virtual void visit(AssignStatementAST& Node) override {
+    IsAssignmentFlag = true;
     Node.LHS->accept(*this);
+
     auto* LHS = V;
 
     if (Node.RHS) {
       Node.RHS->accept(*this);
       Builder.CreateStore(getValue(V), LHS)->setAlignment(Int64Align);
     }
+    IsAssignmentFlag = false;
   }
 
   virtual void visit(PrintStatementAST& Node) override {
@@ -330,14 +336,21 @@ class ToIRVisitor : public ASTVisitor {
     llvm::StringRef ArrayName = Node.Ident->Value;
 
     Node.Index->accept(*this);
-    auto* Index = V;
+    auto* Index = getValue(V);
 
-    // TODO
-//    auto* Ptr = Builder.CreateInBoundsGEP(ArrayTy, NameMap[ArrayName],
-//    {ConstantInt::get(Int64Ty, 0), Index});
-    auto* LoadedPointer = Builder.CreateLoad(PtrTy, NameMap[ArrayName]);
-    auto* Ptr = Builder.CreateInBoundsGEP(Int64Ty, LoadedPointer, {Index});
-    V = Builder.CreateLoad(Int64Ty, Ptr);
+    Value* GEP = nullptr;
+    if (TypeMap[ArrayName]->isPointerTy()) {
+      auto* Load = Builder.CreateLoad(PtrTy, NameMap[ArrayName]);
+      GEP = Builder.CreateInBoundsGEP(Int64Ty, Load, {Index});
+    } else {
+      GEP = Builder.CreateInBoundsGEP(Int64Ty, NameMap[ArrayName], {Index});
+    }
+
+    if (IsAssignmentFlag) {
+      V = GEP;
+    } else {
+      V = Builder.CreateLoad(Int64Ty, GEP);
+    }
   }
 
   void visit(ExpressionFactorAST& Node) override {
@@ -372,6 +385,7 @@ class ToIRVisitor : public ASTVisitor {
     if (Value->getType() != PtrTy) {
       return Value;
     }
+
     auto Load = Builder.CreateLoad(Type, Value);
     Load->setAlignment(Align);
     return Load;
