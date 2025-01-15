@@ -1,6 +1,9 @@
 #include "Lexer/Lexer.h"
 
 namespace charinfo {
+LLVM_READNONE inline bool isLinebreak(char c) {
+  return c == '\n';
+}
 LLVM_READNONE inline bool isWhitespace(char c) {
   return c == ' ' || c == '\t' || c == '\f' ||
       c == '\v' || c == '\r' || c == '\n';
@@ -21,14 +24,30 @@ void Lexer::next(Token& Token) {
     return;
   }
 
-  while (*BufferPtr && charinfo::isWhitespace(*BufferPtr))
+  while (*BufferPtr && charinfo::isWhitespace(*BufferPtr)) {
+    ++CurrentColumn;
+    if (charinfo::isLinebreak(*BufferPtr))
+    {
+      CurrentColumn = 0;
+      ++CurrentLine;
+    }
     ++BufferPtr;
+  }
 
   while (*BufferPtr == '#') { // skip comments
-    while (*BufferPtr && *BufferPtr != '\n') {
+    while (*BufferPtr && !charinfo::isLinebreak(*BufferPtr)) {
       ++BufferPtr;
+      ++CurrentColumn;
     }
+    CurrentColumn = 0;
+    ++CurrentLine;
     while (*BufferPtr && charinfo::isWhitespace(*BufferPtr)) {
+      ++CurrentColumn;
+      if (charinfo::isLinebreak(*BufferPtr))
+      {
+        CurrentColumn = 0;
+        ++CurrentLine;
+      }
       ++BufferPtr;
     }
   }
@@ -134,4 +153,6 @@ void Lexer::formToken(Token& Result,
   Result.Kind = Kind;
   Result.Text = llvm::StringRef(BufferPtr, TokEnd - BufferPtr);
   BufferPtr = TokEnd;
+  Result.Line = CurrentLine;
+  Result.Column = CurrentColumn;
 }
