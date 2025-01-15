@@ -2,11 +2,11 @@
 
 namespace charinfo {
 LLVM_READNONE inline bool isLinebreak(char c) {
-  return c == '\n';
+  return c == '\v' || c == '\r' || c == '\n';
 }
 LLVM_READNONE inline bool isWhitespace(char c) {
   return c == ' ' || c == '\t' || c == '\f' ||
-      c == '\v' || c == '\r' || c == '\n';
+      isLinebreak(c);
 }
 LLVM_READNONE inline bool isDigit(char c) {
   return c >= '0' && c <= '9';
@@ -152,6 +152,7 @@ void Lexer::formToken(Token& Result,
                       TokenKind Kind) {
   Result.Kind = Kind;
   Result.Text = llvm::StringRef(BufferPtr, TokEnd - BufferPtr);
+  CurrentColumn += TokEnd - BufferPtr;
   BufferPtr = TokEnd;
   Result.Line = CurrentLine;
   Result.Column = CurrentColumn;

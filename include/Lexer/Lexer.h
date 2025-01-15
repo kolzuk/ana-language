@@ -18,8 +18,8 @@ class Lexer {
   explicit Lexer(const llvm::StringRef& Buffer) {
     BufferStart = Buffer.begin();
     BufferPtr = BufferStart;
-    CurrentLine = 0;
-    CurrentColumn = 0;
+    CurrentLine = 1;
+    CurrentColumn = 1;
   }
 
   void next(Token& Token);
