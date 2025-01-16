@@ -6,6 +6,7 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
+#include "Parser/AST.h"
 
 using namespace llvm;
 
