@@ -22,6 +22,7 @@ set(LLVM_LINK_COMPONENTS
         MCJIT
         Support
         nativecodegen
+        Passes
 )
 
 add_subdirectory("src")
