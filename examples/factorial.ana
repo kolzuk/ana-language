@@ -8,5 +8,6 @@ fun factorial(integer n) -> integer {
 
 fun main() -> integer {
     print factorial(20);
+
     return 0;
 }

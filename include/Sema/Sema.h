@@ -2,10 +2,12 @@
 #define SEMA_H
 
 #include "Parser/AST.h"
-#include "Lexer/Lexer.h"
+#include "Sema/SemaVisitor.h"
 
 class Sema {
- public:
+  SemaVisitor Visitor;
+public:
+  Sema() : Visitor() {}
   bool semantic(AST* Tree);
 };
 
