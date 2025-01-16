@@ -1,12 +1,12 @@
 fun bubbleSort(array[0] arr, integer n) -> integer {
     integer i = 0;
     integer j = 0;
-
+    integer temp = 0;
     while (i < n) {
         j = 0;
         while (j < n - i - 1) {
             if (arr[j] > arr[j + 1]) {
-                integer temp = arr[j];
+                temp = arr[j];
                 arr[j] = arr[j + 1];
                 arr[j + 1] = temp;
             }
@@ -28,10 +28,20 @@ fun printArray(array[0] arr, integer size) -> integer {
     return 0;
 }
 
-fun main() -> integer {
-    array[10] a = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-    bubbleSort(a, 10);
-    printArray(a, 10);
+fun generateArray(array[0] arr, integer size) -> integer {
+    integer loop = 0;
+    while (loop < size) {
+        arr[loop] = size - loop;
+        loop = loop + 1;
+    }
 
-    return a[2];
+    return 0;
+}
+
+fun main() -> integer {
+    array[10000] a;
+    generateArray(a, 10000);
+    bubbleSort(a, 10000);
+    printArray(a, 10000);
+    return 0;
 }

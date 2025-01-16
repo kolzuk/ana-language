@@ -62,8 +62,8 @@ class ToIRVisitor : public ASTVisitor {
     if (Type == TypeAST::Array) {
       Node.T->accept(*this);
 
-      Alloca = Builder.CreateAlloca(ArrayTy, V, Name);
-      TypeMap[Name] = ArrayTy;
+      Alloca = Builder.CreateAlloca(PtrTy, V, Name);
+      TypeMap[Name] = PtrTy;
       if (Node.Expr) {
         Node.Expr->accept(*this);
         Builder.CreateStore(V, Alloca);
