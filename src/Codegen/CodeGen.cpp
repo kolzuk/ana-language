@@ -27,7 +27,7 @@ class ToIRVisitor : public ASTVisitor {
   StringMap<Type*> TypeMap;
   Function* PrintFunction;
   Align Int64Align = Align(8);
-  llvm::BasicBlock* CurrentWhileBodyBB = nullptr;
+  llvm::BasicBlock* CurrentWhileConditionBB = nullptr;
   llvm::BasicBlock* CurrentAfterWhileBB = nullptr;
   bool IsAssignmentFlag = false;
  public:
@@ -64,8 +64,8 @@ class ToIRVisitor : public ASTVisitor {
     if (Type == TypeAST::Array) {
       Node.T->accept(*this);
 
-      Alloca = Builder.CreateAlloca(ArrayTy, V, Name);
-      TypeMap[Name] = ArrayTy;
+      Alloca = Builder.CreateAlloca(PtrTy, V, Name);
+      TypeMap[Name] = PtrTy;
       if (Node.Expr) {
         Node.Expr->accept(*this);
         Builder.CreateStore(V, Alloca);
@@ -124,6 +124,9 @@ class ToIRVisitor : public ASTVisitor {
     }
 
     Node.Body->accept(*this);
+    if (!Builder.GetInsertBlock()->getTerminator()) {
+      Builder.CreateRetVoid();
+    }
   }
 
   virtual void visit(StatementSequenceAST& Node) override {
@@ -143,54 +146,53 @@ class ToIRVisitor : public ASTVisitor {
     llvm::BasicBlock* AfterIfBB = llvm::BasicBlock::Create(
         M->getContext(), "after.if", CurrentFunction);
 
-    Builder.CreateCondBr(CondResult, IfBodyBB, AfterIfBB);
+    Builder.CreateCondBr(CondResult, IfBodyBB, ElseBodyBB);
+
+    bool IsAfterReachable = false;
 
     Builder.SetInsertPoint(IfBodyBB);
     Node.Body->accept(*this);
-    ReturnStatementAST* Return = nullptr;
-    if (!Node.Body->Statements.empty()) {
-      Return = dynamic_cast<ReturnStatementAST*>(Node.Body->Statements.back());
-    }
-    if (!Return) {
+    if (!Builder.GetInsertBlock()->getTerminator()) {
       Builder.CreateBr(AfterIfBB);
+      IsAfterReachable = true;
     }
 
     Builder.SetInsertPoint(ElseBodyBB);
     Node.ElseBody->accept(*this);
-    Return = nullptr;
-    if (!Node.ElseBody->Statements.empty()) {
-      Return = dynamic_cast<ReturnStatementAST*>(Node.ElseBody->Statements.back());
-    }
-    if (!Return) {
+    if (!Builder.GetInsertBlock()->getTerminator()) {
       Builder.CreateBr(AfterIfBB);
+      IsAfterReachable = true;
     }
 
-    Builder.SetInsertPoint(AfterIfBB);
+    if (IsAfterReachable)
+      Builder.SetInsertPoint(AfterIfBB);
   }
 
   virtual void visit(WhileStatementAST& Node) override {
-    Node.Condition->accept(*this);
-    Value* CondResult = V;
-
+    llvm::BasicBlock* WhileConditionBB = llvm::BasicBlock::Create(
+        M->getContext(), "while.condition", CurrentFunction);
     llvm::BasicBlock* WhileBodyBB = llvm::BasicBlock::Create(
         M->getContext(), "while.body", CurrentFunction);
     llvm::BasicBlock* AfterWhileBB = llvm::BasicBlock::Create(
         M->getContext(), "after.while", CurrentFunction);
 
-    auto GlobalWhileBodyBB = CurrentWhileBodyBB;
+    auto GlobalWhileConditionBB = CurrentWhileConditionBB;
     auto GlobalAfterWhileBB = CurrentAfterWhileBB;
-    CurrentWhileBodyBB = WhileBodyBB;
+    CurrentWhileConditionBB = WhileConditionBB;
     CurrentAfterWhileBB = AfterWhileBB;
 
+    Builder.CreateBr(WhileConditionBB);
+    Builder.SetInsertPoint(WhileConditionBB);
+    Node.Condition->accept(*this);
+    Value* CondResult = V;
     Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
 
     Builder.SetInsertPoint(WhileBodyBB);
     Node.Body->accept(*this);
-    Node.Condition->accept(*this);
-    CondResult = V;
-    Builder.CreateCondBr(CondResult, WhileBodyBB, AfterWhileBB);
+    if (!Builder.GetInsertBlock()->getTerminator())
+      Builder.CreateBr(WhileConditionBB);
 
-    CurrentWhileBodyBB = GlobalWhileBodyBB;
+    CurrentWhileConditionBB = GlobalWhileConditionBB;
     CurrentAfterWhileBB = GlobalAfterWhileBB;
 
     Builder.SetInsertPoint(AfterWhileBB);
@@ -201,7 +203,7 @@ class ToIRVisitor : public ASTVisitor {
   }
 
   virtual void visit(ContinueStatementAST& Node) override {
-    Builder.CreateBr(CurrentWhileBodyBB);
+    Builder.CreateBr(CurrentWhileConditionBB);
   }
 
   virtual void visit(ReturnStatementAST& Node) override {
