@@ -32,11 +32,39 @@ Decl* Scope::lookup(llvm::StringRef Name) {
 }
 
 Scope* Scope::getParent() { return Parent; }
-llvm::StringRef Scope::getName() { return Name;}
+
+llvm::StringRef Scope::getName() { return Name; }
 
 void SemaVisitor::error(const llvm::SmallString<128>& Message) {
   llvm::errs() << Message << "\n";
   HasError = true;
+}
+
+Decl* Scope::getUpFunctionDecl() {
+  llvm::StringRef Name = this->getName();
+  Scope* CurrentScp = this->getParent() ? this->getParent() : nullptr;
+  while (CurrentScp) {
+    llvm::StringMap<Decl *>::const_iterator Iter = CurrentScp->ScopeMembers.find(Name);
+    if (Iter != CurrentScp->ScopeMembers.end()) {
+      Decl* Declaration = Iter->second;
+      if (Declaration->Arguments) {
+        return Declaration;
+      }
+    }
+    Name = CurrentScp->getName();
+    CurrentScp = CurrentScp->getParent();
+  }
+  return nullptr;
+}
+
+bool SemaVisitor::isInLoop() {
+  Scope* CurrentScp = Scp;
+  while (CurrentScp && (CurrentScp->getName() == "if" || CurrentScp->getName() == "while")) {
+    if (CurrentScp->getName() == "while")
+      return true;
+    CurrentScp = CurrentScp->getParent();
+  }
+  return false;
 }
 
 std::string SemaVisitor::typeToString(const TypeAST::TypeKind Type) {
@@ -108,6 +136,26 @@ llvm::SmallString<128> SemaVisitor::generateNotIntegerIndexMessage() {
 llvm::SmallString<128> SemaVisitor::generateNotIntegerExpressionMessage() {
   llvm::SmallString<128> Message;
   Message.append("Such expression must be integer");
+  return Message;
+}
+
+llvm::SmallString<128> SemaVisitor::generateNotArrayExpressionMessage(size_t Size) {
+  llvm::SmallString<128> Message;
+  Message.append("Such expression must be array with size of ");
+  Message.append(std::to_string(Size));
+  return Message;
+}
+
+llvm::SmallString<128> SemaVisitor::generateOutsideFunctionMessage() {
+  llvm::SmallString<128> Message;
+  Message.append("Return outside the function");
+  return Message;
+}
+
+llvm::SmallString<128> SemaVisitor::generateOutsideLoopMessage(const llvm::StringRef& Instruction)  {
+  llvm::SmallString<128> Message;
+  Message.append(Instruction);
+  Message.append(" must be used inside-loop only");
   return Message;
 }
 
@@ -229,33 +277,71 @@ void SemaVisitor::visit(WhileStatementAST& Node) {
 
 void SemaVisitor::visit(ReturnStatementAST& Node) {
   if (HasError) return;
+  Decl* Func = Scp->getUpFunctionDecl();
+  if (!Func) {
+    error(generateOutsideFunctionMessage());
+    return;
+  }
   if (Node.Expr) {
     Node.Expr->accept(*this);
+    TypeAST::TypeKind ExprType = LastType;
+    size_t ExprSize = LastArraySize;
+    Func->Tp->accept(*this);
+    if (LastType != ExprType && LastType != TypeAST::TypeKind::Void) {
+      if (LastType == TypeAST::TypeKind::Integer) { // here
+        error(generateNotIntegerExpressionMessage());
+      }
+      else {
+        error(generateNotArrayExpressionMessage(ExprSize));
+      }
+    }
   }
-};
+}
 
-void SemaVisitor::visit(AssignStatementAST& Node) { // TODO
+void SemaVisitor::visit(AssignStatementAST& Node) {
   if (HasError) return;
   Node.LHS->accept(*this);
   if (Node.RHS) {
+    TypeAST::TypeKind LHSType = LastType;
+    size_t LHSSize = LastArraySize;
     Node.RHS->accept(*this);
+    if (LastType != LHSType) {
+      if (LastType == TypeAST::TypeKind::Integer) {
+        error(generateNotIntegerExpressionMessage());
+      }
+      else {
+        error(generateNotArrayExpressionMessage(LHSSize));
+      }
+    }
   }
 }
 
 void SemaVisitor::visit(PrintStatementAST& Node) {
   if (HasError) return;
-  Node.Expr->accept(*this); // TODO check if expression is int
+  Node.Expr->accept(*this);
+  if (LastType != TypeAST::TypeKind::Integer) {
+    error(generateNotIntegerExpressionMessage());
+  }
 }
 
-void SemaVisitor::visit(BreakStatementAST& Node) {} // Not impl
 
-void SemaVisitor::visit(ContinueStatementAST& Node) {} // Not impl
+void SemaVisitor::visit(BreakStatementAST& Node) {
+  if (HasError) return;
+  if(!isInLoop())
+    error(generateOutsideLoopMessage("break"));
+}
+
+void SemaVisitor::visit(ContinueStatementAST& Node) {
+  if (HasError) return;
+  if(!isInLoop())
+    error(generateOutsideLoopMessage("continue"));
+}
 
 void SemaVisitor::visit(TypeAST& Node) {}; // Abstract
 
 void SemaVisitor::visit(IntegerTypeAST& Node) {
   LastType = Node.Type;
-};
+}
 
 void SemaVisitor::visit(ArrayTypeAST& Node) {
   LastType = Node.Type;
@@ -275,7 +361,7 @@ void SemaVisitor::visit(ArgumentsListAST& Node) {
     TypeAST* Type = Node.Types[i];
     Scp->insert(new Decl(Name, Type, true, nullptr));
   }
-};
+}
 
 void SemaVisitor::visit(ExpressionsListAST& Node) {
   Decl* Func = Scp->lookup(LastFunctionName);
@@ -298,8 +384,8 @@ void SemaVisitor::visit(ExpressionsListAST& Node) {
     if (HasError) return;
     if (VarType != LastType) {
       error(generateNotMatchTypeMessage(Name, VarType));
-      return;
     }
+    if (HasError) return;
     if (VarType == TypeAST::TypeKind::Array and VarSize != LastArraySize) {
       error(generateNotMatchSizeMessage(Name, VarSize));
     }
@@ -313,6 +399,7 @@ void SemaVisitor::visit(ExpressionAST& Node) {
     if (LastType != TypeAST::TypeKind::Integer) {
       error(generateNotIntegerExpressionMessage());
     };
+    if (HasError) return;
     Node.RHS->accept(*this);
     if (LastType != TypeAST::TypeKind::Integer) {
       error(generateNotIntegerExpressionMessage());
@@ -332,6 +419,7 @@ void SemaVisitor::visit(SimpleExpressionAST& Node) {
       error(generateNotIntegerExpressionMessage());
     }
   }
+  if (HasError) return;
   for (auto* Operand : Node.Terms) {
     Operand->accept(*this);
     if (LastType != TypeAST::TypeKind::Integer) {
@@ -351,6 +439,7 @@ void SemaVisitor::visit(TermAST& Node) {
   if (!Node.MulOperands.empty()) {
     if (LastType != TypeAST::TypeKind::Integer) {
       error(generateNotIntegerExpressionMessage());
+      return;
     }
   }
   if (HasError) return;
@@ -358,6 +447,7 @@ void SemaVisitor::visit(TermAST& Node) {
     Operand->accept(*this);
     if (LastType != TypeAST::TypeKind::Integer) {
       error(generateNotIntegerExpressionMessage());
+      return;
     };
     if (HasError) return;
   }

@@ -13,8 +13,9 @@ class SemaVisitor : public ASTVisitor {
   bool HasError;
 
   void error(const llvm::SmallString<128>& Message); // TODO add pos forwarding
+  bool isInLoop();
 
-  static std::string typeToString(const TypeAST::TypeKind Type);
+  static std::string typeToString(TypeAST::TypeKind Type);
   static llvm::SmallString<128> generateAlreadyMessage(const llvm::StringRef& Name);
   static llvm::SmallString<128> generateNotDeclaredMessage(const llvm::StringRef& Name);
   static llvm::SmallString<128> generateNotMatchTypeMessage(const llvm::StringRef& Name, TypeAST::TypeKind Type);
@@ -23,6 +24,10 @@ class SemaVisitor : public ASTVisitor {
   static llvm::SmallString<128> generateWrongGetByIndexMessage(const llvm::StringRef& Name);
   static llvm::SmallString<128> generateNotIntegerIndexMessage();
   static llvm::SmallString<128> generateNotIntegerExpressionMessage();
+  static llvm::SmallString<128> generateNotArrayExpressionMessage(size_t Size);
+  static llvm::SmallString<128> generateOutsideFunctionMessage();
+  static llvm::SmallString<128> generateOutsideLoopMessage(const llvm::StringRef& Instruction);
+
 public:
   SemaVisitor() : Scp(nullptr), LastType(TypeAST::Void), LastArraySize(0), HasError(false) {}
 
