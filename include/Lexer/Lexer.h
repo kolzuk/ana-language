@@ -11,11 +11,15 @@
 class Lexer {
   const char* BufferStart;
   const char* BufferPtr;
+  size_t CurrentLine;
+  size_t CurrentColumn;
 
  public:
   explicit Lexer(const llvm::StringRef& Buffer) {
     BufferStart = Buffer.begin();
     BufferPtr = BufferStart;
+    CurrentLine = 1;
+    CurrentColumn = 1;
   }
 
   void next(Token& Token);
