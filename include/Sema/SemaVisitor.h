@@ -25,7 +25,6 @@ class SemaVisitor : public ASTVisitor {
   static llvm::SmallString<128> generateNotIntegerExpressionMessage();
 public:
   SemaVisitor() : Scp(nullptr), LastType(TypeAST::Void), LastArraySize(0), HasError(false) {}
-  ~SemaVisitor() { delete Scp; };
 
   bool hasError();
   ArgumentsListAST* getArguments();

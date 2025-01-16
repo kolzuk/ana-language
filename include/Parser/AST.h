@@ -49,6 +49,7 @@ class FunctionCallAST;
 
 class ASTVisitor {
  public:
+  virtual ~ASTVisitor() = default;
   virtual void visit(AST&) {};
   virtual void visit(CompilationUnitAST&) = 0;
   virtual void visit(DeclarationAST&) {};

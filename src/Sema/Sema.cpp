@@ -35,7 +35,7 @@ Scope* Scope::getParent() { return Parent; }
 llvm::StringRef Scope::getName() { return Name;}
 
 void SemaVisitor::error(const llvm::SmallString<128>& Message) {
-  llvm::errs() << Message << "n";
+  llvm::errs() << Message << "\n";
   HasError = true;
 }
 
