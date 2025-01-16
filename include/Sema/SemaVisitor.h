@@ -12,7 +12,7 @@ class SemaVisitor : public ASTVisitor {
   llvm::StringRef LastFunctionName;
   bool HasError;
 
-  void error(const llvm::SmallString<128>& Message); // TODO add pos forwarding
+  void error(const llvm::SmallString<128>& Message);
 
   static std::string typeToString(const TypeAST::TypeKind Type);
   static llvm::SmallString<128> generateAlreadyMessage(const llvm::StringRef& Name);

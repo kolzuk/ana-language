@@ -1,10 +1,8 @@
 #include "Sema/Scope.h"
 #include "Sema/Sema.h"
-
-// #include <llvm/IR/Type.h>
-
 #include "Sema/SemaVisitor.h"
 #include "Parser/AST.h"
+
 #include <llvm/Support/raw_ostream.h>
 #include <string>
 
@@ -234,7 +232,7 @@ void SemaVisitor::visit(ReturnStatementAST& Node) {
   }
 };
 
-void SemaVisitor::visit(AssignStatementAST& Node) { // TODO
+void SemaVisitor::visit(AssignStatementAST& Node) {
   if (HasError) return;
   Node.LHS->accept(*this);
   if (Node.RHS) {
@@ -244,12 +242,12 @@ void SemaVisitor::visit(AssignStatementAST& Node) { // TODO
 
 void SemaVisitor::visit(PrintStatementAST& Node) {
   if (HasError) return;
-  Node.Expr->accept(*this); // TODO check if expression is int
+  Node.Expr->accept(*this);
 }
 
-void SemaVisitor::visit(BreakStatementAST& Node) {} // Not impl
+void SemaVisitor::visit(BreakStatementAST& Node) {}
 
-void SemaVisitor::visit(ContinueStatementAST& Node) {} // Not impl
+void SemaVisitor::visit(ContinueStatementAST& Node) {}
 
 void SemaVisitor::visit(TypeAST& Node) {}; // Abstract
 
