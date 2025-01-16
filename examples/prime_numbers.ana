@@ -24,8 +24,9 @@ fun findPrimes(array[100000] primes, integer n) -> integer {
 fun printArray(array[100000] arr, integer size) -> integer {
     integer loop = 1;
     while (loop < size) {
-        print loop;
-        print arr[loop];
+        if (arr[loop] == 1) {
+            print loop;
+        }
         loop = loop + 1;
     }
 
