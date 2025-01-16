@@ -13,7 +13,7 @@ class Parser {
   bool HasError;
 
   void error() {
-    llvm::errs() << "Unexpected: " << Tok.getText() << "\n";
+    llvm::errs() << "[line " << Tok.getLine() << ", column " << Tok.getColumn() << "] Unexpected: " << Tok.getText() << "\n";
     HasError = true;
   }
 
@@ -48,6 +48,8 @@ class Parser {
   WhileStatementAST* parseWhileStatement();
   ReturnStatementAST* parseReturnStatement();
   PrintStatementAST* parsePrintStatement();
+  BreakStatementAST* parseBreakStatement();
+  ContinueStatementAST* parseContinueStatement();
 
   ArgumentsListAST* parseArgumentsList();
   ExpressionsListAST* parseExpressionsList();

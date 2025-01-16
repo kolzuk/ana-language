@@ -46,6 +46,8 @@ enum class TokenKind : short {
   KW_return,
   KW_fun,
   KW_print,
+  KW_break,
+  KW_continue,
 
   EOI, // End of input
   Unknown,
@@ -57,6 +59,9 @@ class Token {
  private:
   TokenKind Kind;
   llvm::StringRef Text;
+  size_t Line;
+  size_t Column;
+
  public:
   [[nodiscard]] TokenKind getKind() const {
     return Kind;
@@ -64,6 +69,14 @@ class Token {
 
   [[nodiscard]] llvm::StringRef getText() const {
     return Text;
+  }
+
+  [[nodiscard]] size_t getLine() const {
+    return Line;
+  }
+
+  [[nodiscard]] size_t getColumn() const {
+    return Column;
   }
 
   [[nodiscard]] bool is(TokenKind K) const {
