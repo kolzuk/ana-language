@@ -6,6 +6,7 @@
 #include <utility>
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "Lexer/Token.h"
 
 class AST;
 
@@ -92,6 +93,8 @@ class ASTVisitor {
 
 class AST {
  public:
+  Token Tok;
+  explicit AST() = default;
   virtual ~AST() = default;
   virtual void accept(ASTVisitor& V) = 0;
 };
