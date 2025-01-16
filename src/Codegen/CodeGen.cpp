@@ -1,4 +1,5 @@
 #include "Codegen/CodeGen.h"
+#include "Codegen/Optimizer.h"
 
 #include "llvm/ADT/StringMap.h"
 #include "llvm/IR/IRBuilder.h"
@@ -434,6 +435,9 @@ void CodeGen::compile(AST* Tree, const std::string& SourceFilename) {
   auto* M = new Module(SourceFilename, Ctx);
   ToIRVisitor ToIR(M);
   ToIR.run(Tree);
+
+  Optimizer Optimizer;
+  Optimizer.optimize(*M);
 
   std::string OutputFilename = SourceFilename + ".ll";
   std::error_code EC;
