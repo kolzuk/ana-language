@@ -50,10 +50,10 @@ class Interpreter {
   void parseFunction();
   void parseStatement();
   void parseAdd();
-  void parseSUB();
-  void parseMUL();
-  void parseDIV();
-  void parseMOD();
+  void parseSub();
+  void parseMul();
+  void parseDiv();
+  void parseMod();
   void parseAssign();
   void parseNewInt();
   void parseNewArray();
@@ -61,7 +61,7 @@ class Interpreter {
   void parseReturn();
   void parseReturnVoid();
   void parseCall();
-  void parseGOTO();
+  void parseGoto();
   void parseBlock();
   void parseEQ();
   void parseNE();
@@ -75,51 +75,16 @@ class Interpreter {
   const char* parseName();
   int64_t parseInt64();
 
-  Label getLabel(const char* LabelName) {
-    if (Labels.find(LabelName) == Labels.end()) {
-      Labels[LabelName] = CurrentAssembler->newLabel();
-    }
-    return Labels[LabelName];
-  }
+  Label getLabel(const char* LabelName);
+  void newVar(const char* Name);
+  void newVar(const char* Name, const x86::Gp& Value);
+  x86::Mem getVarMem(const char* Name);
+  x86::Mem getVarMemByIdx(const char* Name, int64_t Idx);
+  void assignVar(const char* Name, const x86::Gp& Src);
+  void getValue(const char* Name, const x86::Gp& Dst);
+  void getValueByIdx(const char* Name, int64_t Idx, const x86::Gp& Dst);
 
-  void newVar(const char* Name) {
-    VarIdx[Name] = CurIdx;
-    CurrentAssembler->push(0);
-    ++CurIdx;
-  }
-
-  void newVar(const char* Name, const x86::Gp& Value) {
-    VarIdx[Name] = CurIdx;
-    CurrentAssembler->push(Value);
-    ++CurIdx;
-  }
-
-  x86::Mem getVarMem(const char* Name) {
-    return x86::ptr(x86::rsp, (CurIdx - VarIdx[Name] - 1) * 8);
-  }
-
-  x86::Mem getVarMemByIdx(const char* Name, int64_t Idx) {
-    CurrentAssembler->mov(x86::r15, getVarMem(Name));
-    return x86::ptr(x86::r15, Idx * 8);
-  }
-
-  void assignVar(const char* Name, const x86::Gp& Src) {
-    CurrentAssembler->mov(getVarMem(Name), Src);
-  }
-
-  void getValue(const char* Name, const x86::Gp& Dst) {
-    CurrentAssembler->mov(Dst, getVarMem(Name));
-  }
-
-  void getValueByIdx(const char* Name, int64_t Idx, const x86::Gp& Dst) {
-    CurrentAssembler->mov(x86::r15, getVarMem(Name));
-    CurrentAssembler->mov(Dst, x86::ptr(x86::r15, Idx * 8));
-  }
-
-  void allocNewArray(int64_t Size, const x86::Gp& Dst) {
-    auto* Arr = new int64_t[Size];
-    CurrentAssembler->mov(Dst, Arr);
-  }
+  void allocNewArray(int64_t Size, const x86::Gp& Dst);
 
   void resetCompiler() {
     Labels.clear();
@@ -147,7 +112,6 @@ class Interpreter {
     for (const auto& FuncElem : FuncMap) {
       Runtime.release(FuncElem.second.Ptr);
     }
-
     delete CurrentAssembler;
     delete CurrentCode;
     delete Logger;

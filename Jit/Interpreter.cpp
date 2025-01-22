@@ -1,6 +1,12 @@
 #include "Interpreter.h"
 #include <vector>
 
+#ifdef _WIN64
+const std::vector<x86::Gp> ArgRegs { x86::rcx, x86::rdx, x86::r8, x86::r9 };
+#else
+const std::vector<x86::Gp> ArgRegs { x86::rdi, x86::rsi, x86::rdx, x86::rcx, x86::r8, x86::r9 };
+#endif
+
 const char* Interpreter::parseName() {
   const char* Start = BufferPtr;
   while (*BufferPtr != 0) {
@@ -59,18 +65,12 @@ void Interpreter::parseFunction() {
   }
   ++BufferPtr;
 
-  Label Start = CurrentAssembler->newLabel();;
+  Label Start = CurrentAssembler->newLabel();
   CurrentAssembler->bind(Start);
   CurFunStartLabel = Start;
   for (int i = 0; i < ArgNames.size(); i++) {
-    if (i == 0) {
-      newVar(ArgNames[i], x86::rcx);
-    } else if (i == 1) {
-      newVar(ArgNames[i], x86::rdx);
-    } else if (i == 2) {
-      newVar(ArgNames[i], x86::r8);
-    } else if (i == 3) {
-      newVar(ArgNames[i], x86::r9);
+    if (i < ArgRegs.size()) {
+      newVar(ArgNames[i], ArgRegs[i]);
     } else {
       newVar(ArgName);
       CurrentAssembler->mov(x86::rax, x86::ptr(x86::rsp, (CurIdx + i + 1) * 8));
@@ -103,13 +103,13 @@ void Interpreter::parseStatement() {
   switch (*BufferPtr) {
     case ADD:parseAdd();
       break;
-    case SUB:parseSUB();
+    case SUB:parseSub();
       break;
-    case MUL:parseMUL();
+    case MUL:parseMul();
       break;
-    case DIV:parseDIV();
+    case DIV:parseDiv();
       break;
-    case MOD:parseMOD();
+    case MOD:parseMod();
       break;
     case ASSIGN:parseAssign();
       break;
@@ -125,7 +125,7 @@ void Interpreter::parseStatement() {
       break;
     case CALL:parseCall();
       break;
-    case GOTO:parseGOTO();
+    case GOTO:parseGoto();
       break;
     case BLOCK:parseBlock();
       break;
@@ -210,14 +210,14 @@ void Interpreter::parseAdd() {
   CurrentAssembler->add(Mem, x86::rax);
 }
 
-void Interpreter::parseSUB() {
+void Interpreter::parseSub() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   parseOperand(x86::rax);
   CurrentAssembler->sub(Mem, x86::rax);
 }
 
-void Interpreter::parseMUL() {
+void Interpreter::parseMul() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   CurrentAssembler->mov(x86::rax, Mem);
@@ -231,7 +231,7 @@ void Interpreter::parseMUL() {
   CurrentAssembler->mov(Mem, x86::rax);
 }
 
-void Interpreter::parseDIV() {
+void Interpreter::parseDiv() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   CurrentAssembler->mov(x86::rax, Mem);
@@ -245,7 +245,7 @@ void Interpreter::parseDIV() {
   CurrentAssembler->mov(Mem, x86::rax);
 }
 
-void Interpreter::parseMOD() {
+void Interpreter::parseMod() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   CurrentAssembler->mov(x86::rax, Mem);
@@ -287,7 +287,7 @@ void print(int64_t x) {
 
 void Interpreter::parsePrint() {
   ++BufferPtr;
-  parseOperand(x86::rcx);
+  parseOperand(ArgRegs[0]);
   CurrentAssembler->sub(x86::rsp, 40);
   CurrentAssembler->call(print);
   CurrentAssembler->add(x86::rsp, 40);
@@ -317,21 +317,12 @@ void Interpreter::parseCall() {
     Signature = FuncMap[FuncName].Signature;
   }
 
-  std::vector<x86::Gp> ArgRegs;
-  for (int i = 0; i < Signature.argCount() && i < 4; i++) {
-    if (i == 0) {
-      parseOperand(x86::rcx);
-    } else if (i == 1) {
-      parseOperand(x86::rdx);
-    } else if (i == 2) {
-      parseOperand(x86::r8);
-    } else if (i == 3) {
-      parseOperand(x86::r9);
-    }
+  for (int i = 0; i < Signature.argCount() && i < ArgRegs.size(); i++) {
+    parseOperand(ArgRegs[i]);
   }
-  if (Signature.argCount() > 4) {
-    CurrentAssembler->sub(x86::rsp, (Signature.argCount() - 4) * 8);
-    for (int i = 0; i < Signature.argCount() - 4; i++) {
+  if (Signature.argCount() > ArgRegs.size()) {
+    CurrentAssembler->sub(x86::rsp, (Signature.argCount() - ArgRegs.size()) * 8);
+    for (int i = 0; i < Signature.argCount() - ArgRegs.size(); i++) {
       parseOperand(x86::rax);
       CurrentAssembler->mov(x86::ptr(x86::rsp, i * 8), x86::rax);
     }
@@ -345,8 +336,8 @@ void Interpreter::parseCall() {
   }
   CurrentAssembler->add(x86::rsp, 32);
 
-  if (Signature.argCount() > 4) {
-    CurrentAssembler->add(x86::rsp, (Signature.argCount() - 4) * 8);
+  if (Signature.argCount() > ArgRegs.size()) {
+    CurrentAssembler->add(x86::rsp, (Signature.argCount() - ArgRegs.size()) * 8);
   }
 
   if (Signature.ret() != TypeId::kVoid) {
@@ -355,7 +346,7 @@ void Interpreter::parseCall() {
   }
 }
 
-void Interpreter::parseGOTO() {
+void Interpreter::parseGoto() {
   ++BufferPtr;
   auto Label = parseName();
   CurrentAssembler->jmp(getLabel(Label));
@@ -419,6 +410,52 @@ void Interpreter::parseGE() {
   auto Label = parseName();
   CurrentAssembler->cmp(x86::rax, x86::rbx);
   CurrentAssembler->jge(getLabel(Label));
+}
+
+Label Interpreter::getLabel(const char* LabelName) {
+  if (Labels.find(LabelName) == Labels.end()) {
+    Labels[LabelName] = CurrentAssembler->newLabel();
+  }
+  return Labels[LabelName];
+}
+
+void Interpreter::newVar(const char* Name) {
+  VarIdx[Name] = CurIdx;
+  CurrentAssembler->push(0);
+  ++CurIdx;
+}
+
+void Interpreter::newVar(const char* Name, const x86::Gp& Value) {
+  VarIdx[Name] = CurIdx;
+  CurrentAssembler->push(Value);
+  ++CurIdx;
+}
+
+x86::Mem Interpreter::getVarMem(const char* Name) {
+  return x86::ptr(x86::rsp, (CurIdx - VarIdx[Name] - 1) * 8);
+}
+
+x86::Mem Interpreter::getVarMemByIdx(const char* Name, int64_t Idx) {
+  CurrentAssembler->mov(x86::r15, getVarMem(Name));
+  return x86::ptr(x86::r15, Idx * 8);
+}
+
+void Interpreter::assignVar(const char* Name, const x86::Gp& Src) {
+  CurrentAssembler->mov(getVarMem(Name), Src);
+}
+
+void Interpreter::getValue(const char* Name, const x86::Gp& Dst) {
+  CurrentAssembler->mov(Dst, getVarMem(Name));
+}
+
+void Interpreter::getValueByIdx(const char* Name, int64_t Idx, const x86::Gp& Dst) {
+  CurrentAssembler->mov(x86::r15, getVarMem(Name));
+  CurrentAssembler->mov(Dst, x86::ptr(x86::r15, Idx * 8));
+}
+
+void Interpreter::allocNewArray(int64_t Size, const x86::Gp& Dst) {
+  auto* Arr = new int64_t[Size];
+  CurrentAssembler->mov(Dst, Arr);
 }
 
 //int64_t* getVarPtrCall(GarbageCollector* GC, const char* Name) {
