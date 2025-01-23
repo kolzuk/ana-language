@@ -45,10 +45,10 @@ class Interpreter {
   void parseFunction();
   void parseStatement();
   void parseAdd();
-  void parseSUB();
-  void parseMUL();
-  void parseDIV();
-  void parseMOD();
+  void parseSub();
+  void parseMul();
+  void parseDiv();
+  void parseMod();
   void parseAssign();
   void parseNewInt();
   void parseNewArray();
@@ -56,7 +56,7 @@ class Interpreter {
   void parseReturn();
   void parseReturnVoid();
   void parseCall();
-  void parseGOTO();
+  void parseGoto();
   void parseBlock();
   void parseEQ();
   void parseNE();
@@ -74,8 +74,8 @@ class Interpreter {
   void newInt(const std::string& Name);
   void newPtr(const std::string& Name);
   void newArrayAlloc(const std::string& Name, int64_t Size);
-  void newFunctionCall();
-  void functionRet();
+  void runtimeFunctionCall();
+  void runtimeFunctionReturn();
   Label getLabel(const std::string& LabelName);
 
   void resetCompiler() {

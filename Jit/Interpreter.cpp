@@ -1,5 +1,4 @@
 #include "Interpreter.h"
-#include <vector>
 
 #ifdef _WIN64
 const std::vector<x86::Gp> ArgRegs { x86::rcx, x86::rdx, x86::r8, x86::r9 };
@@ -32,9 +31,6 @@ void Interpreter::parseFunction() {
   auto FuncName = parseName();
   FuncSignature Signature(CallConvId::kHost);
 
-  CurFunctionName = FuncName;
-  CurFunctionSignature = Signature;
-
   switch (*BufferPtr) {
     case (BytecodeType::INT_TYPE) : Signature.setRet(TypeId::kInt64);
       break;
@@ -64,6 +60,12 @@ void Interpreter::parseFunction() {
     ArgNames.push_back(ArgName);
   }
   ++BufferPtr;
+
+  CurFunctionName = FuncName;
+  CurFunctionSignature = Signature;
+  if (strcmp(FuncName, "main") == 0) {
+    initGC();
+  }
 
   Label Start = CurrentAssembler->newLabel();
   CurrentAssembler->bind(Start);
@@ -277,7 +279,7 @@ void Interpreter::parseNewArray() {
   auto Name = parseName();
   auto Size = parseInt64();
   newVar(Name);
-  allocNewArray(Size, x86::rax);
+  allocNewArray(Size);
   assignVar(Name, x86::rax);
 }
 
@@ -297,12 +299,14 @@ void Interpreter::parseReturn() {
   ++BufferPtr;
   parseOperand(x86::rax);
   CurrentAssembler->add(x86::rsp, CurIdx * 8);
+  callGC();
   CurrentAssembler->ret();
 }
 
 void Interpreter::parseReturnVoid() {
   ++BufferPtr;
   CurrentAssembler->add(x86::rsp, CurIdx * 8);
+  callGC();
   CurrentAssembler->ret();
 }
 
@@ -311,7 +315,7 @@ void Interpreter::parseCall() {
   auto FuncName = parseName();
   FuncSignature Signature;
 
-  if (FuncName == CurFunctionName) {
+  if (strcmp(FuncName, CurFunctionName) == 0) {
     Signature = CurFunctionSignature;
   } else {
     Signature = FuncMap[FuncName].Signature;
@@ -329,7 +333,7 @@ void Interpreter::parseCall() {
   }
 
   CurrentAssembler->sub(x86::rsp, 32);
-  if (FuncName == CurFunctionName) {
+  if (strcmp(FuncName, CurFunctionName) == 0) {
     CurrentAssembler->call(CurFunStartLabel);
   } else {
     CurrentAssembler->call(FuncMap[FuncName].Ptr);
@@ -453,41 +457,38 @@ void Interpreter::getValueByIdx(const char* Name, int64_t Idx, const x86::Gp& Ds
   CurrentAssembler->mov(Dst, x86::ptr(x86::r15, Idx * 8));
 }
 
-void Interpreter::allocNewArray(int64_t Size, const x86::Gp& Dst) {
-  auto* Arr = new int64_t[Size];
-  CurrentAssembler->mov(Dst, Arr);
+int64_t* alloc(GarbageCollector* GC, int64_t Size) {
+  return GC->newArrayAlloc(Size);
 }
 
-//int64_t* getVarPtrCall(GarbageCollector* GC, const char* Name) {
-//  return GC->getVariablePtr(Name);
-//}
-//
-//void newScopeCall(GarbageCollector* GC) {
-//  GC->newScope();
-//}
-//
-//void Interpreter::runtimeFunctionCall() {
-//  InvokeNode* Invoke;
-//  FuncSignature Signature = FuncSignature::build<void, void*>();
-//  x86::Gp ArgReg1 = CurrentCompiler->newIntPtr();
-//
-//  CurrentCompiler->mov(ArgReg1, &GC);
-//
-//  CurrentCompiler->invoke(&Invoke, &newScopeCall, Signature);
-//  Invoke->setArg(0, ArgReg1);
-//}
-//
-//void destroyScopeCall(GarbageCollector* GC) {
-//  GC->destroyScope();
-//}
-//
-//void Interpreter::runtimeFunctionReturn() {
-//  InvokeNode* Invoke;
-//  FuncSignature Signature = FuncSignature::build<void, void*>();
-//  x86::Gp ArgReg1 = CurrentCompiler->newIntPtr();
-//
-//  CurrentCompiler->mov(ArgReg1, &GC);
-//
-//  CurrentCompiler->invoke(&Invoke, &destroyScopeCall, Signature);
-//  Invoke->setArg(0, ArgReg1);
-//}
+void Interpreter::allocNewArray(int64_t Size) {
+  CurrentAssembler->mov(ArgRegs[0], &GC);
+  CurrentAssembler->mov(ArgRegs[1], Size);
+  CurrentAssembler->sub(x86::rsp, 40);
+  CurrentAssembler->call(alloc);
+  CurrentAssembler->add(x86::rsp, 40);
+}
+
+void initGCStack(GarbageCollector* GC, int64_t* StackPtr) {
+  GC->initStack(StackPtr);
+}
+
+void Interpreter::initGC() {
+  CurrentAssembler->mov(ArgRegs[0], &GC);
+  CurrentAssembler->mov(ArgRegs[1], x86::rsp);
+  CurrentAssembler->sub(x86::rsp, 40);
+  CurrentAssembler->call(initGCStack);
+  CurrentAssembler->add(x86::rsp, 40);
+}
+
+void callCollector(GarbageCollector* GC, int64_t* StackPtr) {
+  GC->collect(StackPtr);
+}
+
+void Interpreter::callGC() {
+  CurrentAssembler->mov(ArgRegs[0], &GC);
+  CurrentAssembler->mov(ArgRegs[1], x86::rsp);
+  CurrentAssembler->sub(x86::rsp, 40);
+  CurrentAssembler->call(callCollector);
+  CurrentAssembler->add(x86::rsp, 40);
+}

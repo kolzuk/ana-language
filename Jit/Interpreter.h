@@ -5,7 +5,6 @@
 
 #include <asmjit/asmjit.h>
 #include <string>
-#include <stdexcept>
 #include <unordered_map>
 
 using namespace asmjit;
@@ -26,6 +25,7 @@ class Interpreter {
   CodeHolder* CurrentCode;
   Logger* Logger;
   x86::Assembler* CurrentAssembler;
+  GarbageCollector GC;
 
   std::unordered_map<std::string, NativeFunction> FuncMap;
   const char* CurFunctionName{};
@@ -84,7 +84,9 @@ class Interpreter {
   void getValue(const char* Name, const x86::Gp& Dst);
   void getValueByIdx(const char* Name, int64_t Idx, const x86::Gp& Dst);
 
-  void allocNewArray(int64_t Size, const x86::Gp& Dst);
+  void allocNewArray(int64_t Size);
+  void initGC();
+  void callGC();
 
   void resetCompiler() {
     Labels.clear();
