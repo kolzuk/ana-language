@@ -14,7 +14,6 @@ int main() {
       BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
 
       OpCode::BLOCK, 'n', 'e', 'x', 't', 0,
-      OpCode::PRINT, BytecodeType::INT_TYPE, 'x', 0,
       OpCode::NEW_INT, 'y', 0,
       OpCode::ASSIGN,
       BytecodeType::INT_TYPE, 'y', 0,
@@ -26,10 +25,9 @@ int main() {
       OpCode::CALL, 'f', 'a', 'c', 0,
       BytecodeType::INT_TYPE, 'y', 0,
       BytecodeType::INT_TYPE, 'y', 0,
-      OpCode::ADD,
+      OpCode::MUL,
       BytecodeType::INT_TYPE, 'x', 0,
       BytecodeType::INT_TYPE, 'y', 0,
-      OpCode::PRINT, BytecodeType::INT_TYPE, 'x', 0,
       OpCode::RETURN,
       BytecodeType::INT_TYPE, 'x', 0,
       OpCode::FUN_END,
@@ -41,7 +39,7 @@ int main() {
 
       // c = fac(4)
       OpCode::CALL, 'f', 'a', 'c', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 4,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 20,
       BytecodeType::INT_TYPE, 'c', 0,
 
       // print c

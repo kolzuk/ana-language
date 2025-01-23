@@ -299,7 +299,9 @@ void Interpreter::parseReturn() {
   ++BufferPtr;
   parseOperand(x86::rax);
   CurrentAssembler->add(x86::rsp, CurIdx * 8);
+  CurrentAssembler->push(x86::rax);
   callGC();
+  CurrentAssembler->pop(x86::rax);
   CurrentAssembler->ret();
 }
 
