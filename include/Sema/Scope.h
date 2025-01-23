@@ -23,11 +23,12 @@ public:
   explicit Scope(llvm::StringRef Name, Scope *Parent = nullptr)
   : Name(Name),
     Parent(Parent)
-    {}
+  {}
   bool insert(Decl *Declaration);
   Decl* lookup(llvm::StringRef Name);
   Scope* getParent();
   llvm::StringRef getName();
+  Decl* getUpFunctionDecl();
   ;
 };
 
