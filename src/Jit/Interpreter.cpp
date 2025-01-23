@@ -1,4 +1,4 @@
-#include "Interpreter.h"
+#include "Jit/Interpreter.h"
 
 #ifdef _WIN64
 const std::vector<x86::Gp> ArgRegs { x86::rcx, x86::rdx, x86::r8, x86::r9 };

@@ -1,13 +1,12 @@
-add_llvm_executable(ana_language main.cpp
+add_llvm_executable(ana_language
+        main.cpp
         Parser/Parser.cpp
         Lexer/Lexer.cpp
         Sema/Sema.cpp
         Codegen/CodeGen.cpp
         Codegen/Optimizer.cpp
-        Interpreter/Interpreter.cpp
+        Jit/Interpreter.cpp
 )
-
-target_include_directories(ana_language PRIVATE "${PROJECT_SOURCE_DIR}/include")
 
 include(FetchContent)
 
@@ -18,6 +17,4 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(asmjit)
-
 target_link_libraries(ana_language PUBLIC asmjit)
-

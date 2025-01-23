@@ -3,6 +3,7 @@ project("ana_language")
 
 set(CMAKE_CXX_STANDARD 17)
 
+
 # У меня здесь иначе не запускалось без этого. Необходимо починить.
 # Необходимо указать нужный путь до LLVM нужной версии
 set(LLVM_DIR "/opt/homebrew/opt/llvm@17/lib/cmake/llvm")
@@ -26,4 +27,4 @@ set(LLVM_LINK_COMPONENTS
 )
 
 add_subdirectory("src")
-
+target_include_directories(ana_language PRIVATE "${PROJECT_SOURCE_DIR}/include")

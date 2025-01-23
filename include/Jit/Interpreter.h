@@ -1,9 +1,10 @@
-#ifndef JIT_JIT_INTERPRETER_H_
-#define JIT_JIT_INTERPRETER_H_
+#ifndef INTERPRETER_H
+#define INTERPRETER_H
 
 #include "GarbageCollector.h"
 
 #include <asmjit/asmjit.h>
+
 #include <string>
 #include <unordered_map>
 
@@ -194,4 +195,4 @@ enum BytecodeType : char {
   INDEX = 5,
 };
 
-#endif //JIT_JIT_INTERPRETER_H_
+#endif //INTERPRETER_H

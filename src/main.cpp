@@ -1,75 +1,111 @@
-#include "Codegen/CodeGen.h"
-#include "Parser/Parser.h"
-#include "Sema/Sema.h"
+#include "Jit/Interpreter.h"
 
-#include "llvm/Support/InitLLVM.h"
-#include "llvm/Support/raw_ostream.h"
-#include <llvm/Support/SourceMgr.h>
+int main() {
 
-#include <filesystem>
+  char bytecode[] {
+      OpCode::FUN, 'f', 'a', 'c', 0, BytecodeType::INT_TYPE,
+      BytecodeType::INT_TYPE, 'x', 0,
+      0,
+      OpCode::CMP_GT,
+      BytecodeType::INT_TYPE, 'x', 0,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+      'n', 'e', 'x', 't', 0,
+      OpCode::RETURN,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
 
-void compileFile(const std::string& SourceFile) {
-  llvm::outs() << "Compiling... " << SourceFile << "\n";
+      OpCode::BLOCK, 'n', 'e', 'x', 't', 0,
+      OpCode::NEW_INT, 'y', 0,
+      OpCode::ASSIGN,
+      BytecodeType::INT_TYPE, 'y', 0,
+      BytecodeType::INT_TYPE, 'x', 0,
+      OpCode::SUB,
+      BytecodeType::INT_TYPE, 'y', 0,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+      // y = fac(y)
+      OpCode::CALL, 'f', 'a', 'c', 0,
+      BytecodeType::INT_TYPE, 'y', 0,
+      BytecodeType::INT_TYPE, 'y', 0,
+      OpCode::MUL,
+      BytecodeType::INT_TYPE, 'x', 0,
+      BytecodeType::INT_TYPE, 'y', 0,
+      OpCode::RETURN,
+      BytecodeType::INT_TYPE, 'x', 0,
+      OpCode::FUN_END,
 
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>
-      FileOrErr = llvm::MemoryBuffer::getFile(SourceFile);
-  if (std::error_code BufferError = FileOrErr.getError()) {
-    llvm::errs() << "Error reading " << SourceFile << ": "
-                 << BufferError.message() << "\n";
-    return;
-  }
+      // fun main() -> void
+      OpCode::FUN, 'm', 'a', 'i', 'n', 0, BytecodeType::VOID_TYPE,
+      0,
+      OpCode::NEW_INT, 'c', 0,
 
-  llvm::SourceMgr SrcMgr;
-  SrcMgr.AddNewSourceBuffer(std::move(*FileOrErr),
-                            llvm::SMLoc());
-  auto Buffer = SrcMgr.getMemoryBuffer(SrcMgr.getMainFileID())->getBuffer();
+      // c = fac(20)
+      OpCode::CALL, 'f', 'a', 'c', 0,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 20,
+      BytecodeType::INT_TYPE, 'c', 0,
 
-  Lexer Lexer(Buffer);
-  Parser Parser(Lexer);
-  AST* Tree = Parser.parse();
-  if (!Tree || Parser.hasError()) {
-    llvm::errs() << "Syntax errors occured\n";
-    return;
-  }
-  Sema Sema;
-  if (Sema.semantic(Tree)) {
-    llvm::errs() << "Semantic errors occured\n";
-    return;
-  }
+      // print c
+      OpCode::PRINT, BytecodeType::INT_TYPE, 'c', 0,
 
-  CodeGen::compile(Tree, SourceFile);
-  llvm::outs() << "Success\n";
-}
+      // array[3] arr
+      OpCode::NEW_ARRAY, 'a', 'r', 'r', 0,
+      0, 0, 0, 0, 0, 0, 0, 3,
 
-namespace fs = std::filesystem;
+      OpCode::NEW_INT, 'i', 0,
+      OpCode::NEW_INT, 't', 0, //  t - указатель
 
-void compileAllFilesInDir(const std::string& Dir) {
-  if (!fs::exists(Dir) || !fs::is_directory(Dir)) {
-    llvm::errs() << "Not found folder " << Dir << "\n";
-    return;
-  }
+      // t = arr
+      OpCode::ASSIGN,
+      BytecodeType::INT_TYPE, 't', 0,
+      BytecodeType::INT_TYPE, 'a', 'r', 'r', 0,
 
-  for (const auto& File : fs::directory_iterator(Dir)) {
-    if (fs::is_regular_file(File) && File.path().extension() == ".ana") {
-      compileFile(File.path().string());
-    }
-  }
-}
+      OpCode::BLOCK, 'c', 'o', 'n', 'd', 0,
 
-int main(int argc, const char** argv) {
-  llvm::InitLLVM X(argc, argv);
+      // if i >= 3 goto after
+      OpCode::CMP_GE,
+      BytecodeType::INT_TYPE, 'i', 0,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 3,
+      'a', 'f', 't', 'e', 'r', 0,
 
-  if (argc < 2) {
-    llvm::errs() << "Input file as argument expected\n";
-    return -1;
-  }
+      // *(t + 0) = i
+      OpCode::ASSIGN,
+      BytecodeType::INDEX, 't', 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      BytecodeType::INT_TYPE, 'i', 0,
 
-  if (std::strcmp(argv[1], "-all") == 0) {
-    compileAllFilesInDir("examples");
-  } else {
-    for (int i = 1; i < argc; i++) {
-      compileFile(argv[i]);
-    }
-  }
-  return 0;
+      // i = i + 1
+      OpCode::ADD,
+      BytecodeType::INT_TYPE, 'i', 0,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+
+      // t = t + 8
+      OpCode::ADD,
+      BytecodeType::INT_TYPE, 't', 0,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 8,
+
+      // goto cond
+      OpCode::GOTO, 'c', 'o', 'n', 'd', 0,
+
+      OpCode::BLOCK, 'a', 'f', 't', 'e', 'r', 0,
+
+      // print arr[0]
+      OpCode::PRINT,
+      BytecodeType::INDEX, 'a', 'r', 'r', 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+
+      // print arr[1]
+      OpCode::PRINT,
+      BytecodeType::INDEX, 'a', 'r', 'r', 0,
+      0, 0, 0, 0, 0, 0, 0, 1,
+
+      // print arr[2]
+      OpCode::PRINT,
+      BytecodeType::INDEX, 'a', 'r', 'r', 0,
+      0, 0, 0, 0, 0, 0, 0, 2,
+
+      OpCode::RETURN_VOID,
+      OpCode::FUN_END,
+      OpCode::END
+  };
+
+  Interpreter Interpreter;
+  Interpreter.execute(bytecode);
 }

@@ -1,5 +1,5 @@
-#ifndef JIT_JIT_GARBAGECOLLECTOR_H_
-#define JIT_JIT_GARBAGECOLLECTOR_H_
+#ifndef GARBAGE_COLLECTOR_H
+#define GARBAGE_COLLECTOR_H
 
 #include <cstdint>
 #include <vector>
@@ -56,4 +56,4 @@ class GarbageCollector {
 
 };
 
-#endif //JIT_JIT_GARBAGECOLLECTOR_H_
+#endif //GARBAGE_COLLECTOR_H
