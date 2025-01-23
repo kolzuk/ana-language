@@ -90,6 +90,7 @@ void Interpreter::parseFunction() {
 
   ++BufferPtr;
 
+  CurrentAssembler->finalize();
   Func Function;
   Error err = Runtime.add(&Function, CurrentCode);
 
