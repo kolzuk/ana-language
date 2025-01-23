@@ -37,7 +37,7 @@ int main() {
       0,
       OpCode::NEW_INT, 'c', 0,
 
-      // c = fac(4)
+      // c = fac(20)
       OpCode::CALL, 'f', 'a', 'c', 0,
       BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 20,
       BytecodeType::INT_TYPE, 'c', 0,

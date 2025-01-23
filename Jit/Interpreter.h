@@ -150,6 +150,42 @@ enum OpCode : char {
   END
 };
 
+/*
+  name - null-terminated string
+  number - (8 bytes)
+  operand :
+    INT_TYPE name
+    PTR_TYPE name
+    INT_LITERAL number
+    INDEX name number
+
+ ADD operand operand
+ SUB operand operand
+ MUL operand operand
+ DIV operand operand
+ MOD operand operand
+ ASSIGN operand(кроме number) operand
+ FUN name type (type name)* 0
+ NEW_INT name
+ NEW_ARRAY name number
+ PRINT operand
+ RETURN operand
+ RETURN_VOID
+ GOTO name
+ CMP_EQ operand operand name
+ CMP_NE operand operand name
+ CMP_LT operand operand name
+ CMP_LE operand operand name
+ CMP_GT operand operand name
+ CMP_GE operand operand name
+ BLOCK name
+ CALL name operand* operand(кроме number)?
+ FUN_END
+ END
+
+ * **/
+
+
 enum BytecodeType : char {
   INT_TYPE = 1,
   PTR_TYPE = 2,
