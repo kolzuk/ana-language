@@ -1,7 +1,8 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
-#include "GarbageCollector.h"
+#include "Bytecode/Bytecode.h"
+#include "JitExecutor.h"
 
 #include <asmjit/asmjit.h>
 
@@ -10,12 +11,12 @@
 
 using namespace asmjit;
 
-typedef void (* Func)();
+//typedef void (* Func)();
 
-struct NativeFunction {
-  Func Ptr;
-  FuncSignature Signature;
-};
+//struct NativeFunction {
+//  Func Ptr;
+//  FuncSignature Signature;
+//};
 
 class Interpreter {
   const char* BufferStart = nullptr;
@@ -63,7 +64,7 @@ class Interpreter {
   void parseReturnVoid();
   void parseCall();
   void parseGoto();
-  void parseBlock();
+  void parseLabel();
   void parseEQ();
   void parseNE();
   void parseLT();
@@ -111,6 +112,7 @@ class Interpreter {
   }
 
   void execute(const char*);
+  void execute(std::vector<std::pair<Operations, std::vector<std::string>>>);
   ~Interpreter() {
     for (const auto& FuncElem : FuncMap) {
       Runtime.release(FuncElem.second.Ptr);
@@ -125,31 +127,48 @@ class Interpreter {
   }
 };
 
-enum OpCode : char {
-  ADD = 1,
-  SUB,
-  MUL,
-  DIV,
-  MOD,
-  ASSIGN,
-  FUN,
-  NEW_INT,
-  NEW_ARRAY,
-  PRINT,
-  RETURN,
-  RETURN_VOID,
-  GOTO,
-  CMP_EQ,
-  CMP_NE,
-  CMP_LT,
-  CMP_LE,
-  CMP_GT,
-  CMP_GE,
-  BLOCK,
-  CALL,
-  FUN_END,
-  END
-};
+//
+//enum OpCode : char {
+//  ADD = 1,
+//  SUB,
+//  MUL,
+//  DIV,
+//  MOD,
+//  ASSIGN,
+//  PUSH,
+//  LOAD,
+//  FUN,
+////  NEW_INT,
+//  NEW_ARRAY,
+//  PRINT,
+//  RETURN,
+//  RETURN_VOID,
+//  GOTO,
+//  CMP,
+//
+//  // (if true => 1, if false => 0)
+//  CMP_EQ,
+//  CMP_NE,
+//  CMP_LT,
+//  CMP_LE,
+//  CMP_GT,
+//  CMP_GE,
+//
+//  // GO TO LABEL IF TRUE ON STACK TOP
+//  GOTO_IF_TRUE,
+//
+////  CMP_EQ,
+////  CMP_NE,
+////  CMP_LT,
+////  CMP_LE,
+////  CMP_GT,
+////  CMP_GE,
+//
+//  BLOCK,
+//  CALL,
+//  FUN_END,
+//  END
+//};
 
 /*
   name - null-terminated string
@@ -186,13 +205,13 @@ enum OpCode : char {
 
  * **/
 
-
-enum BytecodeType : char {
-  INT_TYPE = 1,
-  PTR_TYPE = 2,
-  VOID_TYPE = 3,
-  INT_LITERAL = 4,
-  INDEX = 5,
-};
+//
+//enum BytecodeType : char {
+//  INT_TYPE = 1,
+//  PTR_TYPE = 2,
+//  VOID_TYPE = 3,
+//  INT_LITERAL = 4,
+//  INDEX = 5,
+//};
 
 #endif //INTERPRETER_H

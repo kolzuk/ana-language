@@ -1,4 +1,5 @@
 #include "Jit/Interpreter.h"
+#include "Bytecode/Bytecode.h"
 
 #ifdef _WIN64
 const std::vector<x86::Gp> ArgRegs { x86::rcx, x86::rdx, x86::r8, x86::r9 };
@@ -74,7 +75,7 @@ void Interpreter::parseFunction() {
     if (i < ArgRegs.size()) {
       newVar(ArgNames[i], ArgRegs[i]);
     } else {
-      newVar(ArgName);
+      newVar(ArgNames[i]);
       CurrentAssembler->mov(x86::rax, x86::ptr(x86::rsp, (CurIdx + i + 1) * 8));
       assignVar(ArgNames[i], x86::rax);
     }
@@ -135,7 +136,7 @@ void Interpreter::parseStatement() {
       break;
     case GOTO:parseGoto();
       break;
-    case BLOCK:parseBlock();
+    case BLOCK:parseLabel();
       break;
     case CMP_EQ:parseEQ();
       break;
@@ -364,7 +365,7 @@ void Interpreter::parseGoto() {
   CurrentAssembler->jmp(getLabel(Label));
 }
 
-void Interpreter::parseBlock() {
+void Interpreter::parseLabel() {
   ++BufferPtr;
   auto Label = parseName();
   CurrentAssembler->bind(getLabel(Label));

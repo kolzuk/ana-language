@@ -1,49 +1,83 @@
 #include "Jit/Interpreter.h"
+#include "Bytecode/Bytecode.h"
 
 int main() {
 
   char bytecode[] {
-      OpCode::FUN, 'f', 'a', 'c', 0, BytecodeType::INT_TYPE,
-      BytecodeType::INT_TYPE, 'x', 0,
-      0,
-      OpCode::CMP_GT,
-      BytecodeType::INT_TYPE, 'x', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
-      'n', 'e', 'x', 't', 0,
-      OpCode::RETURN,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+//      OpCode::FUN, 'f', 'a', 'c', 0, BytecodeType::INT_TYPE,
+//      BytecodeType::INT_TYPE, 'x', 0,
+//      0,
+//      OpCode::CMP_GT,
+//      BytecodeType::INT_TYPE, 'x', 0,
+//      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+//      'n', 'e', 'x', 't', 0,
+//      OpCode::RETURN,
+//      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+//
+//      OpCode::BLOCK, 'n', 'e', 'x', 't', 0,
+//      OpCode::NEW_INT, 'y', 0,
+//      OpCode::ASSIGN,
+//      BytecodeType::INT_TYPE, 'y', 0,
+//      BytecodeType::INT_TYPE, 'x', 0,
+//      OpCode::SUB,
+//      BytecodeType::INT_TYPE, 'y', 0,
+//      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+//      // y = fac(y)
+//      OpCode::CALL, 'f', 'a', 'c', 0,
+//      BytecodeType::INT_TYPE, 'y', 0,
+//      BytecodeType::INT_TYPE, 'y', 0,
+//      OpCode::MUL,
+//      BytecodeType::INT_TYPE, 'x', 0,
+//      BytecodeType::INT_TYPE, 'y', 0,
+//      OpCode::RETURN,
+//      BytecodeType::INT_TYPE, 'x', 0,
+//      OpCode::FUN_END,
 
-      OpCode::BLOCK, 'n', 'e', 'x', 't', 0,
-      OpCode::NEW_INT, 'y', 0,
-      OpCode::ASSIGN,
-      BytecodeType::INT_TYPE, 'y', 0,
-      BytecodeType::INT_TYPE, 'x', 0,
-      OpCode::SUB,
-      BytecodeType::INT_TYPE, 'y', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
-      // y = fac(y)
-      OpCode::CALL, 'f', 'a', 'c', 0,
-      BytecodeType::INT_TYPE, 'y', 0,
-      BytecodeType::INT_TYPE, 'y', 0,
-      OpCode::MUL,
-      BytecodeType::INT_TYPE, 'x', 0,
-      BytecodeType::INT_TYPE, 'y', 0,
-      OpCode::RETURN,
-      BytecodeType::INT_TYPE, 'x', 0,
+
+      OpCode::FUN, 's', 'u', 'm', 0, BytecodeType::VOID_TYPE,
+      BytecodeType::INT_TYPE, 'a', 0,
+      BytecodeType::INT_TYPE, 'b', 0,
+      BytecodeType::INT_TYPE, 'c', 0,
+      BytecodeType::INT_TYPE, 'd', 0,
+      BytecodeType::INT_TYPE, 'e', 0,
+      BytecodeType::INT_TYPE, 'f', 0,
+      0,
+      OpCode::PRINT,
+      BytecodeType::INT_TYPE, 'a', 0,
+      OpCode::PRINT,
+      BytecodeType::INT_TYPE, 'b', 0,
+      OpCode::PRINT,
+      BytecodeType::INT_TYPE, 'c', 0,
+      OpCode::PRINT,
+      BytecodeType::INT_TYPE, 'd', 0,
+      OpCode::PRINT,
+      BytecodeType::INT_TYPE, 'e', 0,
+      OpCode::PRINT,
+      BytecodeType::INT_TYPE, 'f', 0,
+      OpCode::RETURN_VOID,
       OpCode::FUN_END,
+
 
       // fun main() -> void
       OpCode::FUN, 'm', 'a', 'i', 'n', 0, BytecodeType::VOID_TYPE,
       0,
-      OpCode::NEW_INT, 'c', 0,
+//      OpCode::NEW_INT, 'c', 0,
+//
+//      // c = fac(20)
+//      OpCode::CALL, 'f', 'a', 'c', 0,
+//      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 20,
+//      BytecodeType::INT_TYPE, 'c', 0,
+//
+//      // print c
+//      OpCode::PRINT, BytecodeType::INT_TYPE, 'c', 0,
 
-      // c = fac(20)
-      OpCode::CALL, 'f', 'a', 'c', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 20,
-      BytecodeType::INT_TYPE, 'c', 0,
-
-      // print c
-      OpCode::PRINT, BytecodeType::INT_TYPE, 'c', 0,
+      OpCode::CALL, 's', 'u', 'm', 0,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 2,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 3,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 4,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 5,
+      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 6,
 
       // array[3] arr
       OpCode::NEW_ARRAY, 'a', 'r', 'r', 0,
