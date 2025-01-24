@@ -1,5 +1,5 @@
 #include "Codegen/Optimizer.h"
 
-void Optimizer::optimize(std::vector<std::pair<Operations, std::string>>& Module) {
+void Optimizer::optimize(std::vector<std::pair<Operation, std::string>>& Module) {
 
 }

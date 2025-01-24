@@ -4,12 +4,12 @@
 
 #include <VirtualMachine/VirtualMachine.h>
 
-void VirtualMachine::execute(std::vector<std::pair<Operations, std::vector<std::string>>>& operations) {
+void VirtualMachine::execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations) {
   for (auto& line : operations) {
-    Operations op = line.first;
+    Operation op = line.first;
 
     switch (op) {
-      
+
     }
   }
 }

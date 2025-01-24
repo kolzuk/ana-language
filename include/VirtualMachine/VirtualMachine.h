@@ -12,7 +12,7 @@
 
 class VirtualMachine {
  public:
-  void execute(std::vector<std::pair<Operations, std::vector<std::string>>>& operations);
+  void execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations);
 };
 
 #endif //VIRTUAL_MACHINE_H
