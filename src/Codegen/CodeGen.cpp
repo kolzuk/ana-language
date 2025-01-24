@@ -437,18 +437,18 @@ void CodeGen::compile(AST* Tree, const std::string& SourceFilename) {
   ToIRVisitor ToIR(M);
   ToIR.run(Tree);
 
-  Optimizer Optimizer;
-  Optimizer.optimize(*M);
+//  Optimizer Optimizer;
+//  Optimizer.optimize(*M);
 
-  std::string OutputFilename = SourceFilename + ".ll";
-  std::error_code EC;
-  sys::fs::OpenFlags OpenFlags = sys::fs::OF_None;
-  auto Out = std::make_unique<llvm::ToolOutputFile>(
-      OutputFilename, EC, OpenFlags);
-  if (EC) {
-    llvm::errs() << EC.message() << '\n';
-    return;
-  }
-  M->print(Out->os(), nullptr);
-  Out->keep();
+//  std::string OutputFilename = SourceFilename + ".ll";
+//  std::error_code EC;
+//  sys::fs::OpenFlags OpenFlags = sys::fs::OF_None;
+//  auto Out = std::make_unique<llvm::ToolOutputFile>(
+//      OutputFilename, EC, OpenFlags);
+//  if (EC) {
+//    llvm::errs() << EC.message() << '\n';
+//    return;
+//  }
+  M->print(llvm::outs(), nullptr);
+//  Out->keep();
 }

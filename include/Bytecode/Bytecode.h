@@ -1,7 +1,7 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
-enum class Operations : char {
+enum Operation : char {
   ADD,
   SUB,
   MUL,
