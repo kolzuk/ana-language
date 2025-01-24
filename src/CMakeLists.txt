@@ -5,6 +5,7 @@ add_llvm_executable(ana_language
         Sema/Sema.cpp
         Codegen/CodeGen.cpp
         Codegen/Optimizer.cpp
+        Bytecode/BytecodeGenerator.cpp
         Jit/Interpreter.cpp
 )
 
