@@ -1,5 +1,5 @@
-#ifndef ANA_LANGUAGE_INCLUDE_CODEGEN_OPTIMISATOR_H_
-#define ANA_LANGUAGE_INCLUDE_CODEGEN_OPTIMISATOR_H_
+#ifndef OPTIMIZER_H
+#define OPTIMIZER_H
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -18,4 +18,4 @@ class Optimizer {
   void optimize(llvm::Module& Module);
 };
 
-#endif //ANA_LANGUAGE_INCLUDE_CODEGEN_OPTIMISATOR_H_
+#endif //OPTIMIZER_H

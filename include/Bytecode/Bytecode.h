@@ -1,5 +1,5 @@
-#ifndef ANA_LANGUAGE_INCLUDE_BYTECODE_BYTECODE_H_
-#define ANA_LANGUAGE_INCLUDE_BYTECODE_BYTECODE_H_
+#ifndef BYTECODE_H
+#define BYTECODE_H
 
 enum class Operations : char {
   ADD,
@@ -33,4 +33,4 @@ enum class Operations : char {
   FUN_END,
 };
 
-#endif //ANA_LANGUAGE_INCLUDE_BYTECODE_BYTECODE_H_
+#endif //BYTECODE_H
