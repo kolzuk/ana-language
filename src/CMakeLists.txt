@@ -6,7 +6,8 @@ add_llvm_executable(ana_language
         Codegen/CodeGen.cpp
         Codegen/Optimizer.cpp
         Bytecode/BytecodeGenerator.cpp
-        Jit/Interpreter.cpp
+        Jit/JitInterpreter.cpp
+        VirtualMachine/VirtualMachine.cpp
 )
 
 include(FetchContent)

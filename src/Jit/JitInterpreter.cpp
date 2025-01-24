@@ -1,4 +1,4 @@
-#include "Jit/Interpreter.h"
+#include "Jit/JitInterpreter.h"
 
 #ifdef _WIN64
 const std::vector<x86::Gp> ArgRegs { x86::rcx, x86::rdx, x86::r8, x86::r9 };
@@ -6,7 +6,7 @@ const std::vector<x86::Gp> ArgRegs { x86::rcx, x86::rdx, x86::r8, x86::r9 };
 const std::vector<x86::Gp> ArgRegs { x86::rdi, x86::rsi, x86::rdx, x86::rcx, x86::r8, x86::r9 };
 #endif
 
-const char* Interpreter::parseName() {
+const char* JitInterpreter::parseName() {
   const char* Start = BufferPtr;
   while (*BufferPtr != 0) {
     ++BufferPtr;
@@ -15,7 +15,7 @@ const char* Interpreter::parseName() {
   return Start;
 }
 
-int64_t Interpreter::parseInt64() {
+int64_t JitInterpreter::parseInt64() {
   int64_t Res = 0;
   for (int i = 0; i < sizeof(Res); i++) {
     Res = (Res << 8) + *BufferPtr;
@@ -24,7 +24,7 @@ int64_t Interpreter::parseInt64() {
   return Res;
 }
 
-void Interpreter::parseFunction() {
+void JitInterpreter::parseFunction() {
   resetCompiler();
   ++BufferPtr;
 
@@ -107,7 +107,7 @@ void Interpreter::parseFunction() {
   FuncMap[FuncName] = NativeFunction{Function, Signature};
 }
 
-void Interpreter::parseStatement() {
+void JitInterpreter::parseStatement() {
   switch (*BufferPtr) {
     case ADD:parseAdd();
       break;
@@ -153,7 +153,7 @@ void Interpreter::parseStatement() {
   }
 }
 
-void Interpreter::parse() {
+void JitInterpreter::parse() {
   if (*BufferPtr == OpCode::FUN) {
     parseFunction();
   } else {
@@ -161,7 +161,7 @@ void Interpreter::parse() {
   }
 }
 
-void Interpreter::execute(const char* Bytecode) {
+void JitInterpreter::execute(const char* Bytecode) {
   BufferStart = Bytecode;
   BufferPtr = Bytecode;
   HasError = false;
@@ -177,7 +177,7 @@ void Interpreter::execute(const char* Bytecode) {
   }
 }
 
-x86::Mem Interpreter::parseAssignableOperand() {
+x86::Mem JitInterpreter::parseAssignableOperand() {
   if (*BufferPtr == BytecodeType::INT_TYPE || *BufferPtr == BytecodeType::PTR_TYPE) {
     ++BufferPtr;
     auto Name = parseName();
@@ -192,7 +192,7 @@ x86::Mem Interpreter::parseAssignableOperand() {
   }
 }
 
-void Interpreter::parseOperand(const x86::Gp& Dst) {
+void JitInterpreter::parseOperand(const x86::Gp& Dst) {
   if (*BufferPtr == BytecodeType::INT_TYPE || *BufferPtr == BytecodeType::PTR_TYPE) {
     ++BufferPtr;
     auto Name = parseName();
@@ -211,21 +211,21 @@ void Interpreter::parseOperand(const x86::Gp& Dst) {
   }
 }
 
-void Interpreter::parseAdd() {
+void JitInterpreter::parseAdd() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   parseOperand(x86::rax);
   CurrentAssembler->add(Mem, x86::rax);
 }
 
-void Interpreter::parseSub() {
+void JitInterpreter::parseSub() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   parseOperand(x86::rax);
   CurrentAssembler->sub(Mem, x86::rax);
 }
 
-void Interpreter::parseMul() {
+void JitInterpreter::parseMul() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   CurrentAssembler->mov(x86::rax, Mem);
@@ -239,7 +239,7 @@ void Interpreter::parseMul() {
   CurrentAssembler->mov(Mem, x86::rax);
 }
 
-void Interpreter::parseDiv() {
+void JitInterpreter::parseDiv() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   CurrentAssembler->mov(x86::rax, Mem);
@@ -253,7 +253,7 @@ void Interpreter::parseDiv() {
   CurrentAssembler->mov(Mem, x86::rax);
 }
 
-void Interpreter::parseMod() {
+void JitInterpreter::parseMod() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   CurrentAssembler->mov(x86::rax, Mem);
@@ -267,20 +267,20 @@ void Interpreter::parseMod() {
   CurrentAssembler->mov(Mem, x86::rdx);
 }
 
-void Interpreter::parseAssign() {
+void JitInterpreter::parseAssign() {
   ++BufferPtr;
   auto Mem = parseAssignableOperand();
   parseOperand(x86::rax);
   CurrentAssembler->mov(Mem, x86::rax);
 }
 
-void Interpreter::parseNewInt() {
+void JitInterpreter::parseNewInt() {
   ++BufferPtr;
   auto Name = parseName();
   newVar(Name);
 }
 
-void Interpreter::parseNewArray() {
+void JitInterpreter::parseNewArray() {
   ++BufferPtr;
   auto Name = parseName();
   auto Size = parseInt64();
@@ -293,7 +293,7 @@ void print(int64_t x) {
   printf("%lld\n", x);
 }
 
-void Interpreter::parsePrint() {
+void JitInterpreter::parsePrint() {
   ++BufferPtr;
   parseOperand(ArgRegs[0]);
   CurrentAssembler->sub(x86::rsp, 40);
@@ -301,7 +301,7 @@ void Interpreter::parsePrint() {
   CurrentAssembler->add(x86::rsp, 40);
 }
 
-void Interpreter::parseReturn() {
+void JitInterpreter::parseReturn() {
   ++BufferPtr;
   parseOperand(x86::rax);
   CurrentAssembler->add(x86::rsp, CurIdx * 8);
@@ -311,14 +311,14 @@ void Interpreter::parseReturn() {
   CurrentAssembler->ret();
 }
 
-void Interpreter::parseReturnVoid() {
+void JitInterpreter::parseReturnVoid() {
   ++BufferPtr;
   CurrentAssembler->add(x86::rsp, CurIdx * 8);
   callGC();
   CurrentAssembler->ret();
 }
 
-void Interpreter::parseCall() {
+void JitInterpreter::parseCall() {
   ++BufferPtr;
   auto FuncName = parseName();
   FuncSignature Signature;
@@ -358,19 +358,19 @@ void Interpreter::parseCall() {
   }
 }
 
-void Interpreter::parseGoto() {
+void JitInterpreter::parseGoto() {
   ++BufferPtr;
   auto Label = parseName();
   CurrentAssembler->jmp(getLabel(Label));
 }
 
-void Interpreter::parseBlock() {
+void JitInterpreter::parseBlock() {
   ++BufferPtr;
   auto Label = parseName();
   CurrentAssembler->bind(getLabel(Label));
 }
 
-void Interpreter::parseEQ() {
+void JitInterpreter::parseEQ() {
   ++BufferPtr;
   parseOperand(x86::rax);
   parseOperand(x86::rbx);
@@ -379,7 +379,7 @@ void Interpreter::parseEQ() {
   CurrentAssembler->je(getLabel(Label));
 }
 
-void Interpreter::parseNE() {
+void JitInterpreter::parseNE() {
   ++BufferPtr;
   parseOperand(x86::rax);
   parseOperand(x86::rbx);
@@ -388,7 +388,7 @@ void Interpreter::parseNE() {
   CurrentAssembler->jne(getLabel(Label));
 }
 
-void Interpreter::parseLT() {
+void JitInterpreter::parseLT() {
   ++BufferPtr;
   parseOperand(x86::rax);
   parseOperand(x86::rbx);
@@ -397,7 +397,7 @@ void Interpreter::parseLT() {
   CurrentAssembler->jl(getLabel(Label));
 }
 
-void Interpreter::parseLE() {
+void JitInterpreter::parseLE() {
   ++BufferPtr;
   parseOperand(x86::rax);
   parseOperand(x86::rbx);
@@ -406,7 +406,7 @@ void Interpreter::parseLE() {
   CurrentAssembler->jle(getLabel(Label));
 }
 
-void Interpreter::parseGT() {
+void JitInterpreter::parseGT() {
   ++BufferPtr;
   parseOperand(x86::rax);
   parseOperand(x86::rbx);
@@ -415,7 +415,7 @@ void Interpreter::parseGT() {
   CurrentAssembler->jg(getLabel(Label));
 }
 
-void Interpreter::parseGE() {
+void JitInterpreter::parseGE() {
   ++BufferPtr;
   parseOperand(x86::rax);
   parseOperand(x86::rbx);
@@ -424,43 +424,43 @@ void Interpreter::parseGE() {
   CurrentAssembler->jge(getLabel(Label));
 }
 
-Label Interpreter::getLabel(const char* LabelName) {
+Label JitInterpreter::getLabel(const char* LabelName) {
   if (Labels.find(LabelName) == Labels.end()) {
     Labels[LabelName] = CurrentAssembler->newLabel();
   }
   return Labels[LabelName];
 }
 
-void Interpreter::newVar(const char* Name) {
+void JitInterpreter::newVar(const char* Name) {
   VarIdx[Name] = CurIdx;
   CurrentAssembler->push(0);
   ++CurIdx;
 }
 
-void Interpreter::newVar(const char* Name, const x86::Gp& Value) {
+void JitInterpreter::newVar(const char* Name, const x86::Gp& Value) {
   VarIdx[Name] = CurIdx;
   CurrentAssembler->push(Value);
   ++CurIdx;
 }
 
-x86::Mem Interpreter::getVarMem(const char* Name) {
+x86::Mem JitInterpreter::getVarMem(const char* Name) {
   return x86::ptr(x86::rsp, (CurIdx - VarIdx[Name] - 1) * 8);
 }
 
-x86::Mem Interpreter::getVarMemByIdx(const char* Name, int64_t Idx) {
+x86::Mem JitInterpreter::getVarMemByIdx(const char* Name, int64_t Idx) {
   CurrentAssembler->mov(x86::r15, getVarMem(Name));
   return x86::ptr(x86::r15, Idx * 8);
 }
 
-void Interpreter::assignVar(const char* Name, const x86::Gp& Src) {
+void JitInterpreter::assignVar(const char* Name, const x86::Gp& Src) {
   CurrentAssembler->mov(getVarMem(Name), Src);
 }
 
-void Interpreter::getValue(const char* Name, const x86::Gp& Dst) {
+void JitInterpreter::getValue(const char* Name, const x86::Gp& Dst) {
   CurrentAssembler->mov(Dst, getVarMem(Name));
 }
 
-void Interpreter::getValueByIdx(const char* Name, int64_t Idx, const x86::Gp& Dst) {
+void JitInterpreter::getValueByIdx(const char* Name, int64_t Idx, const x86::Gp& Dst) {
   CurrentAssembler->mov(x86::r15, getVarMem(Name));
   CurrentAssembler->mov(Dst, x86::ptr(x86::r15, Idx * 8));
 }
@@ -469,7 +469,7 @@ int64_t* alloc(GarbageCollector* GC, int64_t Size) {
   return GC->newArrayAlloc(Size);
 }
 
-void Interpreter::allocNewArray(int64_t Size) {
+void JitInterpreter::allocNewArray(int64_t Size) {
   CurrentAssembler->mov(ArgRegs[0], &GC);
   CurrentAssembler->mov(ArgRegs[1], Size);
   CurrentAssembler->sub(x86::rsp, 40);
@@ -481,7 +481,7 @@ void initGCStack(GarbageCollector* GC, int64_t* StackPtr) {
   GC->initStack(StackPtr);
 }
 
-void Interpreter::initGC() {
+void JitInterpreter::initGC() {
   CurrentAssembler->mov(ArgRegs[0], &GC);
   CurrentAssembler->mov(ArgRegs[1], x86::rsp);
   CurrentAssembler->sub(x86::rsp, 40);
@@ -493,7 +493,7 @@ void callCollector(GarbageCollector* GC, int64_t* StackPtr) {
   GC->collect(StackPtr);
 }
 
-void Interpreter::callGC() {
+void JitInterpreter::callGC() {
   CurrentAssembler->mov(ArgRegs[0], &GC);
   CurrentAssembler->mov(ArgRegs[1], x86::rsp);
   CurrentAssembler->sub(x86::rsp, 40);

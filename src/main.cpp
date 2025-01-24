@@ -1,4 +1,4 @@
-#include "Jit/Interpreter.h"
+#include "Jit/JitInterpreter.h"
 
 int main() {
 
@@ -106,6 +106,6 @@ int main() {
       OpCode::END
   };
 
-  Interpreter Interpreter;
+  JitInterpreter Interpreter;
   Interpreter.execute(bytecode);
 }

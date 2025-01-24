@@ -1,5 +1,5 @@
-#ifndef INTERPRETER_H
-#define INTERPRETER_H
+#ifndef JIT_INTERPRETER_H
+#define JIT_INTERPRETER_H
 
 #include "GarbageCollector.h"
 
@@ -17,7 +17,7 @@ struct NativeFunction {
   FuncSignature Signature;
 };
 
-class Interpreter {
+class JitInterpreter {
   const char* BufferStart = nullptr;
   const char* BufferPtr = nullptr;
   bool HasError = false;
@@ -102,7 +102,7 @@ class Interpreter {
   }
 
  public:
-  Interpreter() {
+  JitInterpreter() {
     CurrentCode = new CodeHolder();
     CurrentCode->init(Runtime.environment(), Runtime.cpuFeatures());
     Logger = new FileLogger(stdout);
@@ -111,7 +111,7 @@ class Interpreter {
   }
 
   void execute(const char*);
-  ~Interpreter() {
+  ~JitInterpreter() {
     for (const auto& FuncElem : FuncMap) {
       Runtime.release(FuncElem.second.Ptr);
     }
@@ -195,4 +195,4 @@ enum BytecodeType : char {
   INDEX = 5,
 };
 
-#endif //INTERPRETER_H
+#endif //JIT_INTERPRETER_H
