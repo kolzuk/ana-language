@@ -19,13 +19,13 @@ void JitInterpreter::execute(const std::vector<std::pair<Operation, std::vector<
         break;
       case PUSH: Jit.push(asInt64(Command.second[0]));
         break;
-      case ASSIGN: Jit.assign(Command.second[0]);
+      case STORE: Jit.assign(Command.second[0]);
         break;
-      case ASSIGN_BY_INDEX: Jit.assignByIndex(Command.second[0]);
+      case ARRAY_STORE: Jit.assignByIndex(Command.second[0]);
         break;
       case LOAD: Jit.load(Command.second[0]);
         break;
-      case LOAD_BY_INDEX: Jit.loadByIndex(Command.second[0]);
+      case ARRAY_LOAD: Jit.loadByIndex(Command.second[0]);
         break;
       case NEW_ARRAY: Jit.allocNewArray(Command.second[0]);
         break;

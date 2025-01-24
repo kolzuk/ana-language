@@ -9,10 +9,10 @@ enum Operation : char {
   MOD,
 
   PUSH,
-  ASSIGN,
-  ASSIGN_BY_INDEX,
+  STORE,
+  ARRAY_STORE,
   LOAD,
-  LOAD_BY_INDEX,
+  ARRAY_LOAD,
 
   NEW_ARRAY,
   PRINT,
