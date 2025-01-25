@@ -10,16 +10,16 @@ enum Operation : char {
 
   PUSH,
   STORE,
-  ARRAY_STORE,
+  STORE_IN_INDEX,
   LOAD,
-  ARRAY_LOAD,
+  LOAD_FROM_INDEX,
 
   NEW_ARRAY,
   PRINT,
   CALL,
   RETURN,
 
-  GOTO,
+  JUMP,
   CMP,
   JUMP_EQ,
   JUMP_NE,

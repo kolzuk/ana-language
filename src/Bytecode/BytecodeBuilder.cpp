@@ -53,7 +53,7 @@ void BytecodeBuilder::assign(const std::string& Name) {
 }
 
 void BytecodeBuilder::assignByIndex(const std::string& Name) {
-  Bytecode.push_back({Operation::ARRAY_STORE, {Name}});
+  Bytecode.push_back({Operation::STORE_IN_INDEX, {Name}});
 }
 
 void BytecodeBuilder::load(const std::string& Name) {
@@ -61,7 +61,7 @@ void BytecodeBuilder::load(const std::string& Name) {
 }
 
 void BytecodeBuilder::loadByIndex(const std::string& Name) {
-  Bytecode.push_back({Operation::ARRAY_LOAD, {Name}});
+  Bytecode.push_back({Operation::LOAD_FROM_INDEX, {Name}});
 }
 
 void BytecodeBuilder::allocNewArray(const std::string& Name) {
@@ -69,7 +69,7 @@ void BytecodeBuilder::allocNewArray(const std::string& Name) {
 }
 
 void BytecodeBuilder::addGoto(const std::string& Label) {
-  Bytecode.push_back({Operation::GOTO, {Label}});
+  Bytecode.push_back({Operation::JUMP, {Label}});
 }
 
 void BytecodeBuilder::label(const std::string& Label) {

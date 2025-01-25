@@ -21,11 +21,11 @@ void JitInterpreter::execute(const std::vector<std::pair<Operation, std::vector<
         break;
       case STORE: Jit.assign(Command.second[0]);
         break;
-      case ARRAY_STORE: Jit.assignByIndex(Command.second[0]);
+      case STORE_IN_INDEX: Jit.assignByIndex(Command.second[0]);
         break;
       case LOAD: Jit.load(Command.second[0]);
         break;
-      case ARRAY_LOAD: Jit.loadByIndex(Command.second[0]);
+      case LOAD_FROM_INDEX: Jit.loadByIndex(Command.second[0]);
         break;
       case NEW_ARRAY: Jit.allocNewArray(Command.second[0]);
         break;
@@ -36,7 +36,7 @@ void JitInterpreter::execute(const std::vector<std::pair<Operation, std::vector<
       case RETURN: Jit.callGC();
         Jit.addReturn();
         break;
-      case GOTO: Jit.addGoto(Command.second[0]);
+      case JUMP: Jit.addGoto(Command.second[0]);
         break;
       case CMP: Jit.cmp();
         break;
