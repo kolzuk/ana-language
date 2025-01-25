@@ -28,6 +28,7 @@ void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::s
       case (ARRAY_LOAD): ArrayLoad(operands); break;
       case (LOAD_FROM_INDEX): LoadFromIndex(operands); break;
       case (STORE): Store(operands); break;
+      case (ARRAY_STORE): ArrayStore(operands); break;
       case (STORE_IN_INDEX): StoreInIndex(operands); break;
 
       case CMP: Cmp(operands); break;
@@ -169,6 +170,16 @@ void VirtualMachine::Store(std::vector<std::string>& operands) {
   int64_t value = operandStack.top();
   operandStack.pop();
   currentStackFrame.integerVariables[variableName] = value;
+}
+
+void VirtualMachine::ArrayStore(std::vector<std::string>& operands) {
+  auto& currentStackFrame = callStack.top();
+  auto& operandStack = currentStackFrame.operandStack;
+
+  std::string variableName = operands[0];
+  int64_t value = operandStack.top();
+  operandStack.pop();
+  currentStackFrame.arrayVariables[variableName] = value;
 }
 
 void VirtualMachine::StoreInIndex(std::vector<std::string>& operands) {

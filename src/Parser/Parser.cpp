@@ -6,7 +6,7 @@ AST* Parser::parse() {
 
 /// compilationUnit : ( declaration )*;
 CompilationUnitAST* Parser::parseCompilationUnit() {
-  llvm::SmallVector<DeclarationAST*, 8> Declarations;
+  std::vector<DeclarationAST*> Declarations;
   while (!Tok.is(TokenKind::EOI)) {
     DeclarationAST* Declaration = parseDeclaration();
     Declarations.push_back(Declaration);
@@ -121,8 +121,8 @@ RelationAST* Parser::parseRelation() {
 /// simpleExpression : term (addOperator term)*;
 SimpleExpressionAST* Parser::parseSimpleExpression() {
   auto* FirstTrm = parseTerm();
-  llvm::SmallVector<AddOperatorAST*> AddOperators;
-  llvm::SmallVector<TermAST*> Terms;
+  std::vector<AddOperatorAST*> AddOperators;
+  std::vector<TermAST*> Terms;
 
   while (Tok.isOneOf(TokenKind::Plus, TokenKind::Minus)) {
     auto AddOper = parseAddOperator();
@@ -152,8 +152,8 @@ AddOperatorAST* Parser::parseAddOperator() {
 /// term : factor (mulOperator factor)*;
 TermAST* Parser::parseTerm() {
   auto* FirstFactor = parseMulOperand();
-  llvm::SmallVector<MulOperatorAST*> MulOperators;
-  llvm::SmallVector<MulOperandAST*> Factors;
+  std::vector<MulOperatorAST*> MulOperators;
+  std::vector<MulOperandAST*> Factors;
 
   while (Tok.isOneOf(TokenKind::Star, TokenKind::Slash, TokenKind::Percent)) {
     auto* MulOper = parseMulOperator();
@@ -316,8 +316,8 @@ AssignStatementAST* Parser::parseAssignStatement() {
 
 /// argumentList : ( type identifier ( "," type identifier )* )?
 ArgumentsListAST* Parser::parseArgumentsList() {
-  llvm::SmallVector<IdentifierAST*> Idents;
-  llvm::SmallVector<TypeAST*> Types;
+  std::vector<IdentifierAST*> Idents;
+  std::vector<TypeAST*> Types;
   if (Tok.is(TokenKind::RParen)) {
     return new ArgumentsListAST(Idents, Types);
   } else {
@@ -338,7 +338,7 @@ ArgumentsListAST* Parser::parseArgumentsList() {
 
 /// expressionList : ( expression ( "," expression )* )? ;
 ExpressionsListAST* Parser::parseExpressionsList() {
-  llvm::SmallVector<ExpressionAST*> Exprs;
+  std::vector<ExpressionAST*> Exprs;
   if (Tok.is(TokenKind::RParen)) {
     return new ExpressionsListAST(Exprs);
   } else {
@@ -356,7 +356,7 @@ ExpressionsListAST* Parser::parseExpressionsList() {
 /// arrayInitialization : "[" (expression ("," expression)*) "]";
 ArrayInitializationAST* Parser::parseArrayInitialization() {
   consume(TokenKind::LSquare);
-  llvm::SmallVector<ExpressionAST*> Exprs;
+  std::vector<ExpressionAST*> Exprs;
   auto* E = parseExpression();
   Exprs.push_back(E);
 

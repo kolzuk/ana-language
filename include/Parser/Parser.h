@@ -1,9 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <llvm/ADT/StringMap.h>
-#include <llvm/Support/raw_ostream.h>
-
+#include <iostream>
 #include "AST.h"
 #include "Lexer/Lexer.h"
 
@@ -13,7 +11,7 @@ class Parser {
   bool HasError;
 
   void error() {
-    llvm::errs() << "[line " << Tok.getLine() << ", column " << Tok.getColumn() << "] Unexpected: " << Tok.getText() << "\n";
+    std::cerr << "[line " << Tok.getLine() << ", column " << Tok.getColumn() << "] Unexpected: " << Tok.getText() << "\n";
     HasError = true;
   }
 

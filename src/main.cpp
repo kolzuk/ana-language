@@ -1,65 +1,111 @@
+#include "Parser/Parser.h"
+#include "Sema/Sema.h"
+#include "Bytecode/BytecodeGenerator.h"
 #include "VirtualMachine/VirtualMachine.h"
 
-int main() {
-  VirtualMachine vm(100000);
+#include <iostream>
+#include <fstream>
+#include <filesystem>
+#include <cstring>
 
-  std::vector<std::pair<Operation, std::vector<std::string>>> byteCode = {
-      {FUN_BEGIN, {"generateArray", "integer", "n"}}, // 1
-      {LOAD, {"n"}}, // 2
-      {NEW_ARRAY, {"a"}}, // 3
-      {PUSH, {"0"}}, // 25
-      {STORE, {"i"}}, // 26
-      {LABEL, {"condition"}},
-      {LOAD, {"n"}}, // 27
-      {LOAD, {"i"}}, // 28
-      {CMP, {}}, // 40
-      {JUMP_GE, {"after"}}, // 30
-      {LOAD, {"i"}}, // 31
-      {LOAD, {"n"}}, // 32
-      {SUB, {}}, // 33
-      {LOAD, {"i"}}, // 34
-      {STORE_IN_INDEX, {"a"}}, // 35
-      {LOAD, {"i"}}, // 36
-      {PUSH, {"1"}}, // 37
-      {ADD, {}}, // 38
-      {STORE, {"i"}}, // 39
-      {JUMP, {"condition"}}, // 40
-      {LABEL, {"after"}},
-      {ARRAY_LOAD, {"a"}}, // 41
-      {RETURN, {}}, // 42
-      {FUN_END, {}}, // 43
+std::string ConvertOperationToString(Operation operation) {
+  switch (operation) {
+    case ADD: return "ADD";
+    case SUB: return "SUB";
+    case MUL: return "MUL";
+    case DIV: return "DIV";
+    case MOD: return "MOD";
+    case PUSH: return "PUSH";
+    case LOAD: return "LOAD";
+    case ARRAY_LOAD: return "ARRAY_LOAD";
+    case LOAD_FROM_INDEX: return "LOAD_FROM_INDEX";
+    case STORE: return "STORE";
+    case ARRAY_STORE: return "ARRAY_STORE";
+    case STORE_IN_INDEX: return "STORE_IN_INDEX";
+    case NEW_ARRAY: return "NEW_ARRAY";
+    case PRINT: return "PRINT";
+    case CALL: return "CALL";
+    case RETURN: return "RETURN";
+    case LABEL: return "LABEL";
+    case JUMP: return "JUMP";
+    case CMP: return "CMP";
+    case JUMP_EQ: return "JUMP_EQ";
+    case JUMP_NE: return "JUMP_NE";
+    case JUMP_LT: return "JUMP_LT";
+    case JUMP_LE: return "JUMP_LE";
+    case JUMP_GT: return "JUMP_GT";
+    case JUMP_GE: return "JUMP_GE";
+    case FUN_BEGIN: return "FUN_BEGIN";
+    case FUN_END: return "FUN_END";
+  }
+}
 
-      {FUN_BEGIN, {"printArray", "array", "arr", "integer", "n"}}, // 44
-      {PUSH, {"0"}}, // 45
-      {STORE, {"i"}}, // 46
-      {LABEL, {"condition"}},
-      {LOAD, {"n"}}, // 47
-      {LOAD, {"i"}}, // 48
-      {CMP, {}}, // 49
-      {JUMP_GE, {"after"}}, // 50
-      {LOAD, {"i"}}, // 51
-      {LOAD_FROM_INDEX, {"arr"}}, // 52
-      {PRINT, {}}, // 53
-      {LOAD, {"i"}}, // 54
-      {PUSH, {"1"}}, // 55
-      {ADD, {}}, // 56
-      {STORE, {"i"}}, // 57
-      {JUMP, {"condition"}}, // 58
-      {LABEL, {"after"}},
-      {ARRAY_LOAD, {"arr"}}, // 59
-      {RETURN, {}}, // 60
-      {FUN_END, {}}, // 61
+void compileFile(const std::string& SourceFile) {
+  std::cout << "Compiling... " << SourceFile << '\n';
 
-      {FUN_BEGIN, {"main"}}, // 62
-      {PUSH, {"10000"}}, // 63
-      {PUSH, {"10000"}}, // 64
-      {CALL, {"generateArray"}}, // 64
-      {CALL, {"printArray"}}, // 65
-      {RETURN, {}}, // 65
-      {FUN_END, {}},
-  };
+  std::ifstream File(SourceFile);
+  if (!File) {
+    std::cerr << "Error opening file" << std::endl;
+    return;
+  }
 
-  vm.Execute(byteCode);
+  std::string Buffer((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
 
-  return (int)vm.getReturnCode();
+  Lexer Lexer(Buffer);
+  Parser Parser(Lexer);
+  AST* Tree = Parser.parse();
+  if (!Tree || Parser.hasError()) {
+    std::cerr << "Syntax errors occured\n";
+    return;
+  }
+  Sema Sema;
+  if (Sema.semantic(Tree)) {
+    std::cerr << "Semantic errors occured\n";
+    return;
+  }
+
+  BytecodeGenerator CodeGen;
+  auto Bytecode = CodeGen.generate(*Tree);
+  for (int i = 0; i < Bytecode.size(); ++i) {
+    std::cout << ConvertOperationToString(Bytecode[i].first) << ' ';
+    for (int j = 0; j < Bytecode[i].second.size(); ++j) {
+      std::cout << Bytecode[i].second[j] << ' ';
+    }
+
+    std::cout << '\n';
+  }
+  VirtualMachine vm(10000);
+  vm.Execute(Bytecode);
+  File.close();
+}
+
+namespace fs = std::filesystem;
+
+void compileAllFilesInDir(const std::string& Dir) {
+  if (!fs::exists(Dir) || !fs::is_directory(Dir)) {
+    std::cerr << "Not found folder " << Dir << "\n";
+    return;
+  }
+
+  for (const auto& File : fs::directory_iterator(Dir)) {
+    if (fs::is_regular_file(File) && File.path().extension() == ".ana") {
+      compileFile(File.path().string());
+    }
+  }
+}
+
+int main(int argc, const char** argv) {
+  if (argc < 2) {
+    std::cerr << "Input file as argument expected\n";
+    return -1;
+  }
+
+  if (strcmp(argv[1], "-all") == 0) {
+    compileAllFilesInDir("examples");
+  } else {
+    for (int i = 1; i < argc; i++) {
+      compileFile(argv[i]);
+    }
+  }
+  return 0;
 }

@@ -6,7 +6,7 @@
 
 class Sema {
   SemaVisitor Visitor;
-public:
+ public:
   Sema() : Visitor() {}
   bool semantic(AST* Tree);
 };

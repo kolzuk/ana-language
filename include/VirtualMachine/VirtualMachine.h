@@ -72,6 +72,7 @@ class VirtualMachine {
   void ArrayLoad(std::vector<std::string>& operands);
   void LoadFromIndex(std::vector<std::string>& operands);
   void Store(std::vector<std::string>& operands);
+  void ArrayStore(std::vector<std::string>& operands);
   void StoreInIndex(std::vector<std::string>& operands);
 
   void Label(std::vector<std::string>& operands);
