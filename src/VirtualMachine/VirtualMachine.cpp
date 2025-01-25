@@ -11,9 +11,25 @@ int64_t VirtualMachine::ReadFunctions(std::vector<std::pair<Operation, std::vect
     auto& [operation, operands] = operations[pos];
 
     if (operation == FUN_BEGIN) {
-      FunBegin(operands);
+      std::string functionName = operands[0];
+      std::vector<std::pair<std::string, ValueType>> params;
+      for (int i = 1; i < operands.size(); i += 2) {
+        ValueType type;
+        if (operands[i] == "integer")
+          type = INTEGER;
+        else if (operands[i] == "array")
+          type = ARRAY;
+
+        params.emplace_back(operands[i + 1], type);
+      }
+
+      FunctionContext fc;
+      fc.pos = pos;
+      fc.paramsDeclaration = params;
+      fc.functionName = functionName;
+      functionTable[functionName] = fc;
+      lastFunctionName = functionName;
     } else if (operation == FUN_END) {
-      FunEnd(operands);
     } else if (operation == LABEL) {
       const std::string& labelName = operands[0];
       functionTable[lastFunctionName].labels[labelName] = pos;
@@ -39,7 +55,7 @@ void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::s
 
   while (currentLine < operations.size()) {
     auto& [operation, operands] = operations[currentLine];
-
+    // 13 -> 59
     switch (operation) {
       case (ADD): Add(operands); break;
       case (SUB): Sub(operands); break;
@@ -81,60 +97,60 @@ void VirtualMachine::Add(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
-  int64_t lhs = operandStack.top();
+  int64_t first = operandStack.top();
   operandStack.pop();
-  int64_t rhs = operandStack.top();
+  int64_t second = operandStack.top();
   operandStack.pop();
 
-  operandStack.push(lhs + rhs);
+  operandStack.push(second + first);
 }
 
 void VirtualMachine::Sub(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
-  int64_t lhs = operandStack.top();
+  int64_t first = operandStack.top();
   operandStack.pop();
-  int64_t rhs = operandStack.top();
+  int64_t second = operandStack.top();
   operandStack.pop();
 
-  operandStack.push(lhs - rhs);
+  operandStack.push(second - first);
 }
 
 void VirtualMachine::Mul(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
-  int64_t lhs = operandStack.top();
+  int64_t first = operandStack.top();
   operandStack.pop();
-  int64_t rhs = operandStack.top();
+  int64_t second = operandStack.top();
   operandStack.pop();
 
-  operandStack.push(lhs * rhs);
+  operandStack.push(second * first);
 }
 
 void VirtualMachine::Div(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
-  int64_t lhs = operandStack.top();
+  int64_t first = operandStack.top();
   operandStack.pop();
-  int64_t rhs = operandStack.top();
+  int64_t second = operandStack.top();
   operandStack.pop();
 
-  operandStack.push(lhs / rhs);
+  operandStack.push(second / first);
 }
 
 void VirtualMachine::Mod(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
-  int64_t lhs = operandStack.top();
+  int64_t first = operandStack.top();
   operandStack.pop();
-  int64_t rhs = operandStack.top();
+  int64_t second = operandStack.top();
   operandStack.pop();
 
-  operandStack.push(lhs % rhs);
+  operandStack.push(second % first);
 }
 
 void VirtualMachine::Push(std::vector<std::string>& operands) {
@@ -149,13 +165,15 @@ void VirtualMachine::IntegerLoad(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
-  std::string variableName = operands[0];
+  const std::string& variableName = operands[0];
   if (currentStackFrame.integerVariables.find(variableName) == currentStackFrame.integerVariables.end()) {
-    std::cerr << "Integer variable in function: " << currentStackFrame.functionContext.functionName << " not found: " << variableName;
+    std::cerr << "Integer variable in function: " << currentStackFrame.functionContext.functionName
+      << " not found: " << variableName << std::endl;
     return;
   }
 
   int64_t value = currentStackFrame.integerVariables[variableName];
+
   operandStack.push(value);
 }
 
@@ -165,7 +183,8 @@ void VirtualMachine::ArrayLoad(std::vector<std::string>& operands) {
 
   std::string arrayName = operands[0];
   if (currentStackFrame.arrayVariables.find(arrayName) == currentStackFrame.arrayVariables.end()) {
-    std::cerr << "Array variable in function: " << currentStackFrame.functionContext.functionName << " not found: " << arrayName;
+    std::cerr << "Array variable in function: " << currentStackFrame.functionContext.functionName
+      << " not found: " << arrayName << std::endl;
     return;
   }
 
@@ -179,7 +198,8 @@ void VirtualMachine::LoadFromIndex(std::vector<std::string>& operands) {
 
   std::string arrayName = operands[0];
   if (currentStackFrame.arrayVariables.find(arrayName) == currentStackFrame.arrayVariables.end()) {
-    std::cerr << "Array variable in function: " << currentStackFrame.functionContext.functionName << " not found: " << arrayName;
+    std::cerr << "Array variable in function: " << currentStackFrame.functionContext.functionName
+      << " not found: " << arrayName << std::endl;
     return;
   }
   int64_t index = operandStack.top();
@@ -350,24 +370,6 @@ void VirtualMachine::Return(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::FunBegin(std::vector<std::string>& operands) {
-  std::string functionName = operands[0];
-  std::vector<std::pair<std::string, ValueType>> params;
-  for (int i = 1; i < operands.size(); i += 2) {
-    ValueType type;
-    if (operands[i] == "integer")
-      type = INTEGER;
-    else if (operands[i] == "array")
-      type = ARRAY;
-
-    params.emplace_back(operands[i + 1], type);
-  }
-
-  FunctionContext fc;
-  fc.pos = currentLine;
-  fc.paramsDeclaration = params;
-  fc.functionName = functionName;
-  functionTable[functionName] = fc;
-  lastFunctionName = functionName;
 }
 
 void VirtualMachine::FunEnd(std::vector<std::string>& operands) {
