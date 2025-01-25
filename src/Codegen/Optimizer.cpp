@@ -2,43 +2,56 @@
 
 #include <string>
 #include <map>
-#include <stack>
+#include <queue>
 #include <set>
+#include <vector>
 
 void DeadCodeElimination(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode) {
-  std::set<std::string> markedFunctions;
-  std::set<std::string> allFunctions;
-  std::map<std::string, std::vector<std::string>> allCalls;
+  std::map<std::string, std::set<std::string>> allCalls;
   std::string currentFunction;
+  std::map<std::string, int> usefulness;
   for (auto& [operation, operands] : bytecode) {
     if (operation == FUN_BEGIN) {
       currentFunction = operands[0];
-      allFunctions.insert(currentFunction);
+      usefulness[currentFunction] = 0;
     } else if (operation == CALL) {
       std::string functionName = operands[0];
-      allCalls[currentFunction].push_back(functionName);
+      allCalls[currentFunction].insert(functionName);
     }
   }
 
-  markedFunctions.insert("main");
-  std::stack<std::string> checkFunctions;
-  for (int i = 0; i < allCalls["main"].size(); ++i)
-    checkFunctions.push(allCalls["main"][i]);
-
+  std::queue<std::string> checkFunctions;
+  checkFunctions.push(currentFunction);
   while (!checkFunctions.empty()) {
-    std::string function = checkFunctions.top();
+    currentFunction = checkFunctions.front();
+    usefulness[currentFunction]++;
     checkFunctions.pop();
-    markedFunctions.insert(function);
-
-    for (auto& childFunction : allCalls[function]) {
-      if (markedFunctions.find(childFunction) != markedFunctions.end()) {
-        checkFunctions.push(childFunction);
-        markedFunctions.insert(childFunction);
+    for (auto& function  : allCalls[currentFunction]) {
+      if (usefulness[currentFunction] == 0) {
+        checkFunctions.push(function);
       }
     }
   }
+
+
+  bool isUseful = false;
+  std::vector<std::pair<Operation, std::vector<std::string>>> optimizedBytecode;
+  for (auto& [operation, operands] : bytecode) {
+    if (operation == FUN_BEGIN) {
+      currentFunction = operands[0];
+      isUseful = usefulness[currentFunction] != 0;
+    }
+    if (isUseful) {
+      optimizedBytecode.push_back({operation, operands});
+    }
+    if (operation == FUN_END) {
+      isUseful = false;
+    }
+  }
+
+  bytecode.swap(optimizedBytecode);
 }
 
 void Optimizer::optimize(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode) {
-
+  DeadCodeElimination(bytecode);
 }
