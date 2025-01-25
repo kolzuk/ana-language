@@ -49,6 +49,12 @@ void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::s
 
     currentLine++;
   }
+
+  std::cout << '\n';
+  for (int i = 1; i <= 10000; ++i) {
+    std::cout << heap.heap[i].value << ' ';
+  }
+  std::cout << '\n';
 }
 
 void VirtualMachine::Add(std::vector<std::string>& operands) {

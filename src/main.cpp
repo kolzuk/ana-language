@@ -74,7 +74,7 @@ void compileFile(const std::string& SourceFile) {
 
     std::cout << '\n';
   }
-  VirtualMachine vm(10000);
+  VirtualMachine vm(1000000);
   vm.Execute(Bytecode);
   File.close();
 }
