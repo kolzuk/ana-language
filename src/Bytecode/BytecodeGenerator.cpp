@@ -309,7 +309,10 @@ class ToBytecode : public ASTVisitor {
   }
 
   void visit(GetByIndexAST& Node) override {
+    bool Tmp = IsAssignment;
+    IsAssignment = false;
     Node.Index->accept(*this);
+    IsAssignment = Tmp;
     if (IsAssignment) {
       Builder.assignByIndex(Node.Ident->Value);
     } else {
