@@ -40,8 +40,13 @@ class ToBytecode : public ASTVisitor {
     LabelCtr = 0;
     std::vector<std::string> Names;
     Names.push_back(Node.Ident->Value);
-    for (auto& Ident : Node.Arguments->Idents) {
-      Names.push_back(Ident->Value);
+    for (int i = 0; i < Node.Arguments->Idents.size(); i++) {
+      if (Node.Arguments->Types[i]->Type == TypeAST::Integer) {
+        Names.emplace_back("integer");
+      } else {
+        Names.emplace_back("array");
+      }
+      Names.push_back(Node.Arguments->Idents[i]->Value);
     }
     Builder.addFunction(Names);
 
