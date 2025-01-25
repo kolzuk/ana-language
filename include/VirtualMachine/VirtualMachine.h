@@ -22,6 +22,7 @@ enum ValueType {
 struct FunctionContext {
   std::string functionName;
   std::vector<std::pair<std::string, ValueType>> paramsDeclaration;
+  std::map<std::string, int64_t> labels;
   int64_t pos;
 };
 
@@ -54,6 +55,7 @@ class VirtualMachine {
   bool isFunctionDeclaration = false;
   int64_t returnCode = 0;
   CompareResult compareResult;
+  std::string lastFunctionName;
  public:
   explicit VirtualMachine(int64_t heapSize) : heap(heapSize), currentLine(0) {}
   void Execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations);
@@ -67,10 +69,12 @@ class VirtualMachine {
 
   void Push(std::vector<std::string>& operands);
   void Load(std::vector<std::string>& operands);
+  void ArrayLoad(std::vector<std::string>& operands);
   void LoadFromIndex(std::vector<std::string>& operands);
   void Store(std::vector<std::string>& operands);
   void StoreInIndex(std::vector<std::string>& operands);
 
+  void Label(std::vector<std::string>& operands);
   void Jump(std::vector<std::string>& operands);
   void Cmp(std::vector<std::string>& operands);
   void JumpEQ(std::vector<std::string>& operands);

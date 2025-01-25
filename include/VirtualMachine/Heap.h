@@ -70,7 +70,7 @@ struct Heap {
 
   void SetValueByIndex(int64_t index, int64_t value) const {
     if (index <= 0 || index >= size) {
-      std::cerr << "Segfault";
+      std::cerr << "Segfault" << std::endl;
       return;
     }
 

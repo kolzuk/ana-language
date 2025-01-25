@@ -6,11 +6,10 @@
 
 void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations) {
   currentLine = 0;
-  heap = Heap(10000);
 
   while (currentLine < operations.size()) {
     auto& [operation, operands] = operations[currentLine];
-    if (isFunctionDeclaration && operation != FUN_BEGIN && operation != FUN_END) {
+    if (isFunctionDeclaration && operation != FUN_BEGIN && operation != FUN_END && operation != LABEL) {
       currentLine++;
       continue;
     }
@@ -26,17 +25,20 @@ void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::s
 
       case (PUSH): Push(operands); break;
       case (LOAD): Load(operands); break;
+      case (ARRAY_LOAD): ArrayLoad(operands); break;
       case (LOAD_FROM_INDEX): LoadFromIndex(operands); break;
       case (STORE): Store(operands); break;
       case (STORE_IN_INDEX): StoreInIndex(operands); break;
 
       case CMP: Cmp(operands); break;
+      case LABEL: Label(operands); break;
+      case JUMP: Jump(operands); break;
       case JUMP_EQ: JumpEQ(operands); break;
       case JUMP_NE: JumpNE(operands); break;
-//      case JUMP_LT: JumpLT(operands); break;
-//      case JUMP_LE: JumpLE(operands); break;
-//      case JUMP_GT: JumpGT(operands); break;
-//      case JUMP_GE: JumpGE(operands); break;
+      case JUMP_LT: JumpLT(operands); break;
+      case JUMP_LE: JumpLE(operands); break;
+      case JUMP_GT: JumpGT(operands); break;
+      case JUMP_GE: JumpGE(operands); break;
 
       case (NEW_ARRAY): NewArray(operands); break;
       case (PRINT): Print(operands); break;
@@ -121,7 +123,26 @@ void VirtualMachine::Load(std::vector<std::string>& operands) {
   auto& operandStack = currentStackFrame.operandStack;
 
   std::string variableName = operands[0];
+  if (currentStackFrame.integerVariables.find(variableName) == currentStackFrame.integerVariables.end()) {
+    std::cerr << "Integer variable in function: " << currentStackFrame.functionContext.functionName << " not found: " << variableName;
+    return;
+  }
+
   int64_t value = currentStackFrame.integerVariables[variableName];
+  operandStack.push(value);
+}
+
+void VirtualMachine::ArrayLoad(std::vector<std::string>& operands) {
+  auto& currentStackFrame = callStack.top();
+  auto& operandStack = currentStackFrame.operandStack;
+
+  std::string arrayName = operands[0];
+  if (currentStackFrame.arrayVariables.find(arrayName) == currentStackFrame.arrayVariables.end()) {
+    std::cerr << "Array variable in function: " << currentStackFrame.functionContext.functionName << " not found: " << arrayName;
+    return;
+  }
+
+  int64_t value = currentStackFrame.arrayVariables[arrayName];
   operandStack.push(value);
 }
 
@@ -130,6 +151,10 @@ void VirtualMachine::LoadFromIndex(std::vector<std::string>& operands) {
   auto& operandStack = currentStackFrame.operandStack;
 
   std::string arrayName = operands[0];
+  if (currentStackFrame.arrayVariables.find(arrayName) == currentStackFrame.arrayVariables.end()) {
+    std::cerr << "Array variable in function: " << currentStackFrame.functionContext.functionName << " not found: " << arrayName;
+    return;
+  }
   int64_t index = operandStack.top();
   operandStack.pop();
   int64_t pointer = currentStackFrame.arrayVariables[arrayName];
@@ -184,51 +209,66 @@ void VirtualMachine::Cmp(std::vector<std::string>& operands) {
     compareResult.GE = true;
 }
 
-void VirtualMachine::JumpEQ(std::vector<std::string>& operands) {
-  int64_t jumpLine = std::stoll(operands[0]);
+void VirtualMachine::Label(std::vector<std::string>& operands) {
+  if (!isFunctionDeclaration) {
+    return;
+  }
 
+  std::string labelName = operands[0];
+  functionTable[lastFunctionName].labels[labelName] = currentLine;
+}
+
+void VirtualMachine::Jump(std::vector<std::string>& operands) {
+  auto& currentStackFrame = callStack.top();
+  std::string label = operands[0];
+  currentLine = currentStackFrame.functionContext.labels[label];
+}
+
+void VirtualMachine::JumpEQ(std::vector<std::string>& operands) {
+  auto& currentStackFrame = callStack.top();
+  std::string label = operands[0];
   if (compareResult.EQ) {
-    currentLine = jumpLine;
+    currentLine = currentStackFrame.functionContext.labels[label];
   }
 }
 
 void VirtualMachine::JumpNE(std::vector<std::string>& operands) {
-  int64_t jumpLine = std::stoll(operands[0]);
-
+  auto& currentStackFrame = callStack.top();
+  std::string label = operands[0];
   if (compareResult.NE) {
-    currentLine = jumpLine;
+    currentLine = currentStackFrame.functionContext.labels[label];
   }
 }
 
 void VirtualMachine::JumpLT(std::vector<std::string>& operands) {
-  int64_t jumpLine = std::stoll(operands[0]);
-
+  auto& currentStackFrame = callStack.top();
+  std::string label = operands[0];
   if (compareResult.LT) {
-    currentLine = jumpLine;
+    currentLine = currentStackFrame.functionContext.labels[label];
   }
 }
 
 void VirtualMachine::JumpLE(std::vector<std::string>& operands) {
-  int64_t jumpLine = std::stoll(operands[0]);
-
+  auto& currentStackFrame = callStack.top();
+  std::string label = operands[0];
   if (compareResult.LE) {
-    currentLine = jumpLine;
+    currentLine = currentStackFrame.functionContext.labels[label];
   }
 }
 
 void VirtualMachine::JumpGT(std::vector<std::string>& operands) {
-  int64_t jumpLine = std::stoll(operands[0]);
-
+  auto& currentStackFrame = callStack.top();
+  std::string label = operands[0];
   if (compareResult.GT) {
-    currentLine = jumpLine;
+    currentLine = currentStackFrame.functionContext.labels[label];
   }
 }
 
 void VirtualMachine::JumpGE(std::vector<std::string>& operands) {
-  int64_t jumpLine = std::stoll(operands[0]);
-
+  auto& currentStackFrame = callStack.top();
+  std::string label = operands[0];
   if (compareResult.GE) {
-    currentLine = jumpLine;
+    currentLine = currentStackFrame.functionContext.labels[label];
   }
 }
 
@@ -247,7 +287,7 @@ void VirtualMachine::Print(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   int64_t value = currentStackFrame.operandStack.top();
   currentStackFrame.operandStack.pop();
-  std::cout << value;
+  std::cout << value << ' ';
 }
 
 void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
@@ -257,7 +297,11 @@ void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
   std::string functionName = operands[0];
   auto& params = functionTable[functionName].paramsDeclaration;
   for (auto& param : params) {
-    newStackFrame.integerVariables[param.first] = currentStackFrame.operandStack.top();
+    if (param.second == INTEGER)
+      newStackFrame.integerVariables[param.first] = currentStackFrame.operandStack.top();
+    else if (param.second == ARRAY)
+      newStackFrame.arrayVariables[param.first] = currentStackFrame.operandStack.top();
+
     currentStackFrame.operandStack.pop();
   }
   newStackFrame.calledPos = currentLine;
@@ -297,6 +341,7 @@ void VirtualMachine::FunBegin(std::vector<std::string>& operands) {
   fc.paramsDeclaration = params;
   fc.functionName = functionName;
   functionTable[functionName] = fc;
+  lastFunctionName = functionName;
 
   if (functionName == "main") {
     StackFrame stackFrame;
