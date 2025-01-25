@@ -58,11 +58,11 @@ void compileFile(const std::string& SourceFile) {
     std::cerr << "Syntax errors occured\n";
     return;
   }
-  Sema Sema;
-  if (Sema.semantic(Tree)) {
-    std::cerr << "Semantic errors occured\n";
-    return;
-  }
+//  Sema Sema;
+//  if (Sema.semantic(Tree)) {
+//    std::cerr << "Semantic errors occured\n";
+//    return;
+//  }
 
   BytecodeGenerator CodeGen;
   auto Bytecode = CodeGen.generate(*Tree);
@@ -74,7 +74,7 @@ void compileFile(const std::string& SourceFile) {
 
     std::cout << '\n';
   }
-  VirtualMachine vm(1000000);
+  VirtualMachine vm(100000);
   vm.Execute(Bytecode);
   File.close();
 }

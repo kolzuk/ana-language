@@ -61,7 +61,7 @@ struct Heap {
 
   int64_t GetValueByIndex(int64_t index) const {
     if (index <= 0 || index >= size) {
-      std::cerr << "Segfault";
+//      std::cerr << "Segfault";
       return -1;
     }
 
@@ -70,7 +70,7 @@ struct Heap {
 
   void SetValueByIndex(int64_t index, int64_t value) const {
     if (index <= 0 || index >= size) {
-      std::cerr << "Segfault" << std::endl;
+//      std::cerr << "Segfault" << std::endl;
       return;
     }
 

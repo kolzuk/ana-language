@@ -57,8 +57,10 @@ class ToBytecode : public ASTVisitor {
     Names.push_back(Node.Ident->Value);
     for (int i = 0; i < Node.Arguments->Idents.size(); i++) {
       if (Node.Arguments->Types[i]->Type == TypeAST::Integer) {
+        TypeMap[Node.Arguments->Idents[i]->Value] = TypeAST::Integer;
         Names.emplace_back("integer");
       } else {
+        TypeMap[Node.Arguments->Idents[i]->Value] = TypeAST::Array;
         Names.emplace_back("array");
       }
       Names.push_back(Node.Arguments->Idents[i]->Value);
@@ -130,12 +132,16 @@ class ToBytecode : public ASTVisitor {
         break;
     }
 
+    auto Temp1 = CurWhileConditionLabel;
+    auto Temp2 = CurWhileAfterLabel;
     CurWhileConditionLabel = CondLabel;
     CurWhileAfterLabel = AfterLabel;
     Node.Body->accept(*this);
     Builder.addGoto(CondLabel);
-
     Builder.label(AfterLabel);
+
+    CurWhileConditionLabel = Temp1;
+    CurWhileAfterLabel = Temp2;
   }
 
   void visit(BreakStatementAST& Node) override {

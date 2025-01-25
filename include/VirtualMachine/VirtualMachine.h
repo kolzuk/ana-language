@@ -93,6 +93,8 @@ class VirtualMachine {
 
   void FunBegin(std::vector<std::string>& operands);
   void FunEnd(std::vector<std::string>& operands);
+
+  void POP(std::vector<std::string>& operands);
 };
 
 #endif //VIRTUAL_MACHINE_H
