@@ -256,13 +256,13 @@ class ToBytecode : public ASTVisitor {
   void visit(SimpleExpressionAST& Node) override {
     std::vector<TermAST*> Terms;
     Terms.push_back(Node.Trm);
-    for (int i = 0; i < Node.Terms.size(); i++) {
-      Terms.push_back(Node.Terms[i]);
-    }
-    Terms.back()->accept(*this);
-    for (int i = Terms.size() - 2; i >= 0; i--) {
+    for (auto Term : Node.Terms)
+      Terms.push_back(Term);
+
+    Terms[0]->accept(*this);
+    for (int64_t i = 1; i < Terms.size(); ++i) {
       Terms[i]->accept(*this);
-      switch (Node.AddOperators[i]->AddOperatorKind) {
+      switch (Node.AddOperators[i - 1]->AddOperatorKind) {
         case AddOperatorAST::Plus:
           Builder.add();
           break;
@@ -279,13 +279,13 @@ class ToBytecode : public ASTVisitor {
   void visit(TermAST& Node) override {
     std::vector<MulOperandAST*> Operands;
     Operands.push_back(Node.MulOperand);
-    for (int i = 0; i < Node.MulOperands.size(); i++) {
-      Operands.push_back(Node.MulOperands[i]);
-    }
-    Operands.back()->accept(*this);
-    for (int i = Operands.size() - 2; i >= 0; i--) {
+    for (auto MulOperand : Node.MulOperands)
+      Operands.push_back(MulOperand);
+
+    Operands[0]->accept(*this);
+    for (int64_t i = 1; i < Operands.size(); i++) {
       Operands[i]->accept(*this);
-      switch (Node.MulOperators[i]->MulOperatorKind) {
+      switch (Node.MulOperators[i - 1]->MulOperatorKind) {
         case MulOperatorAST::Multiple:
           Builder.mul();
           break;

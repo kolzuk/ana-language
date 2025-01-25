@@ -68,10 +68,10 @@ int main(int argc, const char** argv) {
 
   BytecodeGenerator CodeGen;
   auto Bytecode = CodeGen.generate(*Tree);
-  for (auto & i : Bytecode) {
-    std::cout << ConvertOperationToString(i.first) << ' ';
-    for (int j = 0; j < i.second.size(); ++j) {
-      std::cout << i.second[j] << ' ';
+  for (int i = 0; i < Bytecode.size(); ++i) {
+    std::cout << i << ' ' << ConvertOperationToString(Bytecode[i].first) << ' ';
+    for (int j = 0; j < Bytecode[i].second.size(); ++j) {
+      std::cout << Bytecode[i].second[j] << ' ';
     }
 
     std::cout << '\n';
