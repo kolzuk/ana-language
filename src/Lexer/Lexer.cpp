@@ -1,17 +1,17 @@
 #include "Lexer/Lexer.h"
 
 namespace charinfo {
-LLVM_READNONE inline bool isLinebreak(char c) {
+inline bool isLinebreak(char c) {
   return c == '\v' || c == '\r' || c == '\n';
 }
-LLVM_READNONE inline bool isWhitespace(char c) {
+inline bool isWhitespace(char c) {
   return c == ' ' || c == '\t' || c == '\f' ||
       isLinebreak(c);
 }
-LLVM_READNONE inline bool isDigit(char c) {
+inline bool isDigit(char c) {
   return c >= '0' && c <= '9';
 }
-LLVM_READNONE inline bool isLetter(char c) {
+inline bool isLetter(char c) {
   return (c >= 'a' && c <= 'z') ||
       (c >= 'A' && c <= 'Z');
 }
@@ -61,7 +61,7 @@ void Lexer::next(Token& Token) {
     const char* End = BufferPtr + 1;
     while (charinfo::isLetter(*End) || charinfo::isDigit(*End) || *End == '_')
       ++End;
-    llvm::StringRef Name(BufferPtr, End - BufferPtr);
+    std::string Name(BufferPtr, End - BufferPtr);
     TokenKind Kind;
     if (Name == "if") {
       Kind = TokenKind::KW_if;
@@ -155,7 +155,7 @@ void Lexer::formToken(Token& Result,
                       const char* TokEnd,
                       TokenKind Kind) {
   Result.Kind = Kind;
-  Result.Text = llvm::StringRef(BufferPtr, TokEnd - BufferPtr);
+  Result.Text = std::string(BufferPtr, TokEnd - BufferPtr);
   CurrentColumn += TokEnd - BufferPtr;
   BufferPtr = TokEnd;
   Result.Line = CurrentLine;

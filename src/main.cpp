@@ -3,53 +3,50 @@
 #include "Bytecode/BytecodeGenerator.h"
 #include "Jit/JitInterpreter.h"
 
-#include "llvm/Support/InitLLVM.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/SourceMgr.h"
-
+#include <iostream>
+#include <fstream>
 #include <filesystem>
+#include <cstring>
 
 void compileFile(const std::string& SourceFile) {
-  llvm::outs() << "Compiling... " << SourceFile << "\n";
+  printf("Compiling... %s\n", SourceFile.c_str());
+//  std::cout << "Compiling... " << SourceFile.c_str() << "\n";
 
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>
-      FileOrErr = llvm::MemoryBuffer::getFile(SourceFile);
-  if (std::error_code BufferError = FileOrErr.getError()) {
-    llvm::errs() << "Error reading " << SourceFile << ": "
-                 << BufferError.message() << "\n";
+  std::ifstream File(SourceFile);
+  if (!File) {
+    std::cerr << "Error opening file" << std::endl;
     return;
   }
 
-  llvm::SourceMgr SrcMgr;
-  SrcMgr.AddNewSourceBuffer(std::move(*FileOrErr),
-                            llvm::SMLoc());
-  auto Buffer = SrcMgr.getMemoryBuffer(SrcMgr.getMainFileID())->getBuffer();
+  std::string Buffer((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
 
   Lexer Lexer(Buffer);
   Parser Parser(Lexer);
   AST* Tree = Parser.parse();
   if (!Tree || Parser.hasError()) {
-    llvm::errs() << "Syntax errors occured\n";
+    std::cerr << "Syntax errors occured\n";
     return;
   }
   Sema Sema;
   if (Sema.semantic(Tree)) {
-    llvm::errs() << "Semantic errors occured\n";
+    std::cerr << "Semantic errors occured\n";
     return;
   }
 
   BytecodeGenerator CodeGen;
   auto Bytecode = CodeGen.generate(*Tree);
+//  std::cout << "Execution...\n";
   JitInterpreter Interpreter;
   Interpreter.execute(Bytecode);
-  llvm::outs() << "Success\n";
+//  std::cout << "Success\n";
+  File.close();
 }
 
 namespace fs = std::filesystem;
 
 void compileAllFilesInDir(const std::string& Dir) {
   if (!fs::exists(Dir) || !fs::is_directory(Dir)) {
-    llvm::errs() << "Not found folder " << Dir << "\n";
+    std::cerr << "Not found folder " << Dir << "\n";
     return;
   }
 
@@ -61,14 +58,12 @@ void compileAllFilesInDir(const std::string& Dir) {
 }
 
 int main(int argc, const char** argv) {
-  llvm::InitLLVM X(argc, argv);
-
   if (argc < 2) {
-    llvm::errs() << "Input file as argument expected\n";
+    std::cerr << "Input file as argument expected\n";
     return -1;
   }
 
-  if (std::strcmp(argv[1], "-all") == 0) {
+  if (strcmp(argv[1], "-all") == 0) {
     compileAllFilesInDir("examples");
   } else {
     for (int i = 1; i < argc; i++) {

@@ -4,7 +4,6 @@
 #include "GarbageCollector.h"
 
 #include <asmjit/asmjit.h>
-#include <llvm/Support/raw_ostream.h>
 
 #include <string>
 #include <unordered_map>
@@ -21,7 +20,7 @@ struct NativeFunction {
 class JitExecutor {
   JitRuntime Runtime;
   CodeHolder* CurrentCode;
-//  Logger* Logger;
+  Logger* Logger;
   x86::Assembler* CurrentAssembler;
   GarbageCollector GC;
 
@@ -67,8 +66,8 @@ class JitExecutor {
   JitExecutor() {
     CurrentCode = new CodeHolder();
     CurrentCode->init(Runtime.environment(), Runtime.cpuFeatures());
-//    Logger = new FileLogger(llvm::raw_ostream);
-//    CurrentCode->setLogger(Logger);
+    Logger = new FileLogger(stdout);
+    CurrentCode->setLogger(Logger);
     CurrentAssembler = new x86::Assembler(CurrentCode);
   }
 
@@ -81,7 +80,7 @@ class JitExecutor {
 
     CurrentCode = new CodeHolder();
     CurrentCode->init(Runtime.environment(), Runtime.cpuFeatures());
-//    CurrentCode->setLogger(Logger);
+    CurrentCode->setLogger(Logger);
     CurrentAssembler = new x86::Assembler(CurrentCode);
   }
 
@@ -91,7 +90,7 @@ class JitExecutor {
     }
     delete CurrentAssembler;
     delete CurrentCode;
-//    delete Logger;
+    delete Logger;
   }
 
   Func lookupMain();

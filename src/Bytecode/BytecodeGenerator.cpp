@@ -25,23 +25,23 @@ class ToBytecode : public ASTVisitor {
   void visit(VariableDeclarationAST& Node) override {
     if (Node.Expr) {
       Node.Expr->accept(*this);
-      Builder.assign(Node.Ident->Value.str());
+      Builder.assign(Node.Ident->Value);
     } else if (Node.T->Type == TypeAST::Array) {
       auto* ArrayType = dynamic_cast<ArrayTypeAST*>(Node.T);
-      Builder.push(ArrayType->Size->Value.str());
-      Builder.allocNewArray(Node.Ident->Value.str());
+      Builder.push(ArrayType->Size->Value);
+      Builder.allocNewArray(Node.Ident->Value);
     } else {
       Builder.push("0");
-      Builder.assign(Node.Ident->Value.str());
+      Builder.assign(Node.Ident->Value);
     }
   }
 
   void visit(FunctionDeclarationAST& Node) override {
     LabelCtr = 0;
     std::vector<std::string> Names;
-    Names.push_back(Node.Ident->Value.str());
+    Names.push_back(Node.Ident->Value);
     for (auto& Ident : Node.Arguments->Idents) {
-      Names.push_back(Ident->Value.str());
+      Names.push_back(Ident->Value);
     }
     Builder.addFunction(Names);
 
@@ -198,7 +198,7 @@ class ToBytecode : public ASTVisitor {
   }
 
   void visit(SimpleExpressionAST& Node) override {
-    llvm::SmallVector<TermAST*> Terms;
+    std::vector<TermAST*> Terms;
     Terms.push_back(Node.Trm);
     for (int i = 0; i < Node.Terms.size(); i++) {
       Terms.push_back(Node.Terms[i]);
@@ -221,7 +221,7 @@ class ToBytecode : public ASTVisitor {
   }
 
   void visit(TermAST& Node) override {
-    llvm::SmallVector<MulOperandAST*> Operands;
+    std::vector<MulOperandAST*> Operands;
     Operands.push_back(Node.MulOperand);
     for (int i = 0; i < Node.MulOperands.size(); i++) {
       Operands.push_back(Node.MulOperands[i]);
@@ -259,14 +259,14 @@ class ToBytecode : public ASTVisitor {
 
   void visit(IdentifierAST& Node) override {
     if (IsAssignment) {
-      Builder.assign(Node.Value.str());
+      Builder.assign(Node.Value);
     } else {
-      Builder.load(Node.Value.str());
+      Builder.load(Node.Value);
     }
   }
 
   void visit(IntegerLiteralAST& Node) override {
-    Builder.push(Node.Value.str());
+    Builder.push(Node.Value);
   }
 
   void visit(ArrayInitializationAST& Node) override {
@@ -283,9 +283,9 @@ class ToBytecode : public ASTVisitor {
   void visit(GetByIndexAST& Node) override {
     Node.Index->accept(*this);
     if (IsAssignment) {
-      Builder.assignByIndex(Node.Ident->Value.str());
+      Builder.assignByIndex(Node.Ident->Value);
     } else {
-      Builder.loadByIndex(Node.Ident->Value.str());
+      Builder.loadByIndex(Node.Ident->Value);
     }
 
   }
@@ -298,7 +298,7 @@ class ToBytecode : public ASTVisitor {
     for (int i = Node.ExprList->Exprs.size() - 1; i >= 0; i--) {
       Node.ExprList->Exprs[i]->accept(*this);
     }
-    Builder.addFunctionCall(Node.Ident->Value.str());
+    Builder.addFunctionCall(Node.Ident->Value);
   }
 };
 

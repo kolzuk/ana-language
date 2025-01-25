@@ -1,35 +1,34 @@
 #ifndef SCOPE_H
 #define SCOPE_H
 
-#include "llvm/ADT/StringMap.h"
-#include "llvm/ADT/StringRef.h"
 #include "Parser/AST.h"
+#include <map>
+#include <utility>
 
 
 class Decl {
 public:
-  llvm::StringRef Name;
+  std::string Name;
   TypeAST* Tp;
   bool IsInitialized;
   ArgumentsListAST* Arguments;
-  Decl(llvm::StringRef name, TypeAST* type, bool isInitialized, ArgumentsListAST* arguments);
+  Decl(std::string name, TypeAST* type, bool isInitialized, ArgumentsListAST* arguments);
 };
 
 class Scope {
-  llvm::StringRef Name;
+  std::string Name;
   Scope* Parent;
-  llvm::StringMap<Decl*> ScopeMembers;
+  std::map<std::string, Decl*> ScopeMembers;
 public:
-  explicit Scope(llvm::StringRef Name, Scope *Parent = nullptr)
-  : Name(Name),
+  explicit Scope(std::string Name, Scope *Parent = nullptr)
+  : Name(std::move(Name)),
     Parent(Parent)
   {}
   bool insert(Decl *Declaration);
-  Decl* lookup(llvm::StringRef Name);
+  Decl* lookup(std::string Name);
   Scope* getParent();
-  llvm::StringRef getName();
+  std::string getName();
   Decl* getUpFunctionDecl();
-  ;
 };
 
 #endif //SCOPE_H

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <cstdio>
 
 class GarbageCollector {
 
@@ -20,10 +21,12 @@ class GarbageCollector {
   }
 
   void initStack(int64_t* StackPtr) {
+    printf("GC init: %llu\n", StackPtr);
     BasePtr = StackPtr;
   }
 
   void collect(int64_t* StackPtr) {
+    printf("GC collect: %llu\n", StackPtr);
     bool IsMarked[Allocations.size()];
     for (auto& Flag : IsMarked) {
       Flag = false;

@@ -1,9 +1,6 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
-#include <llvm/ADT/StringRef.h>
-#include <llvm/Support/MemoryBuffer.h>
-
 enum class TokenKind : short {
   Identifier,
   Number,
@@ -58,7 +55,7 @@ class Token {
 
  private:
   TokenKind Kind;
-  llvm::StringRef Text;
+  std::string Text;
   size_t Line;
   size_t Column;
 
@@ -67,7 +64,7 @@ class Token {
     return Kind;
   }
 
-  [[nodiscard]] llvm::StringRef getText() const {
+  [[nodiscard]] std::string getText() const {
     return Text;
   }
 

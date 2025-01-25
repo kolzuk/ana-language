@@ -3,11 +3,10 @@
 #include "Sema/SemaVisitor.h"
 #include "Parser/AST.h"
 
-#include <llvm/Support/raw_ostream.h>
 #include <string>
+#include <iostream>
 
-
-Decl::Decl(llvm::StringRef name, TypeAST* type, bool isInitialized, ArgumentsListAST* arguments) {
+Decl::Decl(std::string name, TypeAST* type, bool isInitialized, ArgumentsListAST* arguments) {
   this->Name = name;
   this->Tp = type;
   this->IsInitialized = isInitialized;
@@ -15,13 +14,13 @@ Decl::Decl(llvm::StringRef name, TypeAST* type, bool isInitialized, ArgumentsLis
 }
 
 bool Scope::insert(Decl* Declaration) {
-  return ScopeMembers.insert(std::pair<llvm::StringRef, Decl*>(Declaration->Name, Declaration)).second;
+  return ScopeMembers.insert(std::pair<std::string, Decl*>(Declaration->Name, Declaration)).second;
 }
 
-Decl* Scope::lookup(llvm::StringRef Name) {
+Decl* Scope::lookup(std::string Name) {
   Scope* CurrentScp = this;
   while (CurrentScp) {
-    llvm::StringMap<Decl *>::const_iterator Iter = CurrentScp->ScopeMembers.find(Name);
+    auto Iter = CurrentScp->ScopeMembers.find(Name);
     if (Iter != CurrentScp->ScopeMembers.end())
       return Iter->second;
     CurrentScp = CurrentScp->getParent();
@@ -30,10 +29,10 @@ Decl* Scope::lookup(llvm::StringRef Name) {
 }
 
 Scope* Scope::getParent() { return Parent; }
-llvm::StringRef Scope::getName() { return Name;}
+std::string Scope::getName() { return Name;}
 
-void SemaVisitor::error(const llvm::SmallString<128>& Message) {
-  llvm::errs() << Message << "\n";
+void SemaVisitor::error(const std::string& Message) {
+  std::cerr << Message << "\n";
   HasError = true;
 }
 
@@ -45,24 +44,24 @@ std::string SemaVisitor::typeToString(const TypeAST::TypeKind Type) {
   }
 }
 
-llvm::SmallString<128> SemaVisitor::generateAlreadyMessage(const llvm::StringRef& Name) {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateAlreadyMessage(const std::string& Name) {
+  std::string Message;
   Message.append("Entity ");
   Message.append(Name);
   Message.append(" is already declared");
   return Message;
 }
 
-llvm::SmallString<128> SemaVisitor::generateNotDeclaredMessage(const llvm::StringRef& Name) {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateNotDeclaredMessage(const std::string& Name) {
+  std::string Message;
   Message.append("Entity ");
   Message.append(Name);
   Message.append(" not declared");
   return Message;
 }
 
-llvm::SmallString<128> SemaVisitor::generateNotMatchTypeMessage(const llvm::StringRef& Name, TypeAST::TypeKind Type) {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateNotMatchTypeMessage(const std::string& Name, TypeAST::TypeKind Type) {
+  std::string Message;
   Message.append("Entity ");
   Message.append(Name);
   Message.append(" must be assigned with type ");
@@ -70,8 +69,8 @@ llvm::SmallString<128> SemaVisitor::generateNotMatchTypeMessage(const llvm::Stri
   return Message;
 }
 
-llvm::SmallString<128> SemaVisitor::generateNotMatchSizeMessage(const llvm::StringRef& Name, size_t Size) {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateNotMatchSizeMessage(const std::string& Name, size_t Size) {
+  std::string Message;
   Message.append("Array variable ");
   Message.append(Name);
   Message.append(" must be assigned with array of size ");
@@ -79,8 +78,8 @@ llvm::SmallString<128> SemaVisitor::generateNotMatchSizeMessage(const llvm::Stri
   return Message;
 }
 
-llvm::SmallString<128> SemaVisitor::generateWrongArgumentsAmountMessage(const llvm::StringRef& Name, size_t Size) {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateWrongArgumentsAmountMessage(const std::string& Name, size_t Size) {
+  std::string Message;
   Message.append("Function ");
   Message.append(Name);
   Message.append(" needs exactly ");
@@ -89,22 +88,22 @@ llvm::SmallString<128> SemaVisitor::generateWrongArgumentsAmountMessage(const ll
   return Message;
 }
 
-llvm::SmallString<128> SemaVisitor::generateWrongGetByIndexMessage(const llvm::StringRef& Name) {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateWrongGetByIndexMessage(const std::string& Name) {
+  std::string Message;
   Message.append("Entity ");
   Message.append(Name);
   Message.append(" must be array to be indexed");
   return Message;
 }
 
-llvm::SmallString<128> SemaVisitor::generateNotIntegerIndexMessage() {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateNotIntegerIndexMessage() {
+  std::string Message;
   Message.append("Index for array must be integer");
   return Message;
 }
 
-llvm::SmallString<128> SemaVisitor::generateNotIntegerExpressionMessage() {
-  llvm::SmallString<128> Message;
+std::string SemaVisitor::generateNotIntegerExpressionMessage() {
+  std::string Message;
   Message.append("Such expression must be integer");
   return Message;
 }
@@ -127,7 +126,7 @@ void SemaVisitor::visit(CompilationUnitAST& Node) {
 
 void SemaVisitor::visit(VariableDeclarationAST& Node) {
   if (HasError) return;
-  llvm::StringRef Name = Node.Ident->Value;
+  std::string Name = Node.Ident->Value;
   if (Scp->lookup(Name)) {
     error(generateAlreadyMessage(Name));
   }
@@ -158,7 +157,7 @@ void SemaVisitor::visit(VariableDeclarationAST& Node) {
 void SemaVisitor::visit(FunctionDeclarationAST& Node) {
   if (HasError) return;
   if (HasError) return;
-  llvm::StringRef Name = Node.Ident->Value;
+  std::string Name = Node.Ident->Value;
   if (Scp->lookup(Name)) {
     error(generateAlreadyMessage(Name));
   }
@@ -257,13 +256,13 @@ void SemaVisitor::visit(IntegerTypeAST& Node) {
 
 void SemaVisitor::visit(ArrayTypeAST& Node) {
   LastType = Node.Type;
-  Node.Size->Value.getAsInteger(10, LastArraySize);
+  LastArraySize = std::stoi(Node.Size->Value);
 };
 
 void SemaVisitor::visit(ArgumentsListAST& Node) {
   for (size_t i = 0; i < Node.Idents.size(); ++i) {
     if (HasError) return;
-    llvm::StringRef Name = Node.Idents[i]->Value;
+    std::string Name = Node.Idents[i]->Value;
     if (Scp->lookup(Name)) {
       error(generateAlreadyMessage(Name));
     }
@@ -289,7 +288,7 @@ void SemaVisitor::visit(ExpressionsListAST& Node) {
     Func->Arguments->Types[i]->accept(*this);
     TypeAST::TypeKind VarType = LastType;
     size_t VarSize = LastArraySize;
-    llvm::StringRef Name = Func->Arguments->Idents[i]->Value;
+    std::string Name = Func->Arguments->Idents[i]->Value;
 
     Expr->accept(*this);
 
@@ -388,7 +387,7 @@ void SemaVisitor::visit(IdentifierAST& Node) {
 };
 
 void SemaVisitor::visit(IntegerLiteralAST& Node) {
-  Node.Value.getAsInteger(10, LastArraySize);
+  LastArraySize = std::stoi(Node.Value);
   LastType = TypeAST::TypeKind::Integer;
 };
 
@@ -424,7 +423,7 @@ void SemaVisitor::visit(ExpressionFactorAST& Node) {
 };
 
 void SemaVisitor::visit(FunctionCallAST& Node) {
-  llvm::StringRef Name = Node.Ident->Value;
+  std::string Name = Node.Ident->Value;
   Decl* Func = Scp->lookup(Name);
   if (!Func) {
     error(generateNotDeclaredMessage(Name));
