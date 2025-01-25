@@ -6,6 +6,7 @@ add_llvm_executable(ana_language
         Codegen/CodeGen.cpp
         Codegen/Optimizer.cpp
         Bytecode/BytecodeGenerator.cpp
+        Bytecode/BytecodeBuilder.cpp
         Jit/JitInterpreter.cpp
         Jit/JitExecutor.cpp
         VirtualMachine/VirtualMachine.cpp

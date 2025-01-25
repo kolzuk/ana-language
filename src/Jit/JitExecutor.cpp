@@ -169,9 +169,7 @@ x86::Mem JitExecutor::getVarMem(const std::string& Name) {
 
 x86::Mem JitExecutor::getVarMemByIdx(const std::string& Name, const x86::Gp& Idx) {
   CurrentAssembler->mov(x86::r15, getVarMem(Name));
-  for (int i = 0; i < 8; i++)
-    CurrentAssembler->add(x86::r15, Idx);
-  return x86::ptr(x86::r15);
+  return x86::ptr(x86::r15, Idx, 3);
 }
 
 void JitExecutor::assignVar(const std::string& Name, const x86::Gp& Src) {
