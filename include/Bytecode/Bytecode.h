@@ -13,6 +13,7 @@ enum Operation : char {
   STORE_IN_INDEX,
   LOAD,
   LOAD_FROM_INDEX,
+  ARRAY_LOAD,
 
   NEW_ARRAY,
   PRINT,

@@ -104,3 +104,7 @@ void BytecodeBuilder::jumpGe(const std::string& Label) {
   Bytecode.push_back({Operation::JUMP_GE, {Label}});
 }
 
+void BytecodeBuilder::loadArray(const std::string& Name) {
+  Bytecode.push_back({Operation::ARRAY_LOAD, {Name}});
+}
+

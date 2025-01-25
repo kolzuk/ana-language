@@ -28,6 +28,7 @@ class BytecodeBuilder {
   void assignByIndex(const std::string& Name);
   void load(const std::string& Name);
   void loadByIndex(const std::string& Name);
+  void loadArray(const std::string& Name);
   void allocNewArray(const std::string& Name);
 
   void addGoto(const std::string& Label);

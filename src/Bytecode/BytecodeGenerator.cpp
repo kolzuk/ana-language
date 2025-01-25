@@ -2,12 +2,15 @@
 #include "Bytecode/BytecodeBuilder.h"
 #include "Parser/AST.h"
 
+#include <unordered_map>
+
 class ToBytecode : public ASTVisitor {
   BytecodeBuilder Builder;
   int LabelCtr = 0;
   std::string CurWhileConditionLabel;
   std::string CurWhileAfterLabel;
   bool IsAssignment = false;
+  std::unordered_map<std::string, TypeAST::TypeKind> TypeMap;
 
   std::string newLabel() {
     return std::to_string(LabelCtr++);
@@ -23,6 +26,7 @@ class ToBytecode : public ASTVisitor {
   }
 
   void visit(VariableDeclarationAST& Node) override {
+    TypeMap[Node.Ident->Value] = Node.T->Type;
     if (Node.Expr) {
       Node.Expr->accept(*this);
       Builder.assign(Node.Ident->Value);
@@ -37,6 +41,7 @@ class ToBytecode : public ASTVisitor {
   }
 
   void visit(FunctionDeclarationAST& Node) override {
+    TypeMap.clear();
     LabelCtr = 0;
     std::vector<std::string> Names;
     Names.push_back(Node.Ident->Value);
@@ -266,7 +271,11 @@ class ToBytecode : public ASTVisitor {
     if (IsAssignment) {
       Builder.assign(Node.Value);
     } else {
-      Builder.load(Node.Value);
+      if (TypeMap[Node.Value] == TypeAST::Integer) {
+        Builder.load(Node.Value);
+      } else {
+        Builder.loadArray(Node.Value);
+      }
     }
   }
 
