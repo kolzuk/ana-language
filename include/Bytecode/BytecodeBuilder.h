@@ -25,6 +25,7 @@ class BytecodeBuilder {
 
   void push(const std::string& x);
   void assign(const std::string& Name);
+  void storeArray(const std::string& Name);
   void assignByIndex(const std::string& Name);
   void load(const std::string& Name);
   void loadByIndex(const std::string& Name);

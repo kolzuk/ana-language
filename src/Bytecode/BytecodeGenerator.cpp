@@ -269,7 +269,11 @@ class ToBytecode : public ASTVisitor {
 
   void visit(IdentifierAST& Node) override {
     if (IsAssignment) {
-      Builder.assign(Node.Value);
+      if (TypeMap[Node.Value] == TypeAST::Integer) {
+        Builder.assign(Node.Value);
+      } else {
+        Builder.storeArray(Node.Value);
+      }
     } else {
       if (TypeMap[Node.Value] == TypeAST::Integer) {
         Builder.load(Node.Value);

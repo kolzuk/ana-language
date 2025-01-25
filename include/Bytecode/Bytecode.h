@@ -10,6 +10,7 @@ enum Operation : char {
 
   PUSH,
   STORE,
+  ARRAY_STORE,
   STORE_IN_INDEX,
   LOAD,
   LOAD_FROM_INDEX,

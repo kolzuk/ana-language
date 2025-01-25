@@ -108,3 +108,7 @@ void BytecodeBuilder::loadArray(const std::string& Name) {
   Bytecode.push_back({Operation::ARRAY_LOAD, {Name}});
 }
 
+void BytecodeBuilder::storeArray(const std::string& Name) {
+  Bytecode.push_back({Operation::ARRAY_STORE, {Name}});
+}
+
