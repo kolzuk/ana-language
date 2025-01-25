@@ -9,25 +9,23 @@ enum Operation : char {
   MOD,
 
   PUSH,
-  ASSIGN,
-  ASSIGN_BY_INDEX,
   LOAD,
-  LOAD_BY_INDEX,
-
-  NEW_ARRAY,
-  PRINT,
-  CALL,
+  LOAD_FROM_INDEX, // LOAD_FROM_INDEX "a" 1 <-> a[1]
+  STORE,           // STORE "a" 2           <-> a = 2;
+  STORE_IN_INDEX,  // ARRAY_STORE "a"       <-> a[3] = stack.top()
+  NEW_ARRAY,       // NEW_ARRAY "ab"   <-> a = new array[3]
+  PRINT,           // PRINT                 <-> print(a)
+  CALL,            // CALL
   RETURN,
 
-  GOTO,
-  CMP,
-  JUMP_EQ,
-  JUMP_NE,
+  JUMP,            // JUMP <label>
+  CMP,             // CMP
+  JUMP_EQ,         // JUMP <label>
+  JUMP_NE,         //
   JUMP_LT,
   JUMP_LE,
   JUMP_GT,
   JUMP_GE,
-  LABEL,
 
   FUN_BEGIN,
   FUN_END,

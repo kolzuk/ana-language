@@ -24,7 +24,6 @@ class JitInterpreter {
 
   JitRuntime Runtime;
   CodeHolder* CurrentCode;
-  Logger* Logger;
   x86::Assembler* CurrentAssembler;
   GarbageCollector GC;
 
@@ -97,7 +96,6 @@ class JitInterpreter {
 
     CurrentCode = new CodeHolder();
     CurrentCode->init(Runtime.environment(), Runtime.cpuFeatures());
-    CurrentCode->setLogger(Logger);
     CurrentAssembler = new x86::Assembler(CurrentCode);
   }
 
@@ -105,8 +103,6 @@ class JitInterpreter {
   JitInterpreter() {
     CurrentCode = new CodeHolder();
     CurrentCode->init(Runtime.environment(), Runtime.cpuFeatures());
-    Logger = new FileLogger(stdout);
-    CurrentCode->setLogger(Logger);
     CurrentAssembler = new x86::Assembler(CurrentCode);
   }
 
@@ -117,7 +113,6 @@ class JitInterpreter {
     }
     delete CurrentAssembler;
     delete CurrentCode;
-    delete Logger;
   }
 
   bool hasError() const {
