@@ -3,27 +3,26 @@
 
 #include "Parser/AST.h"
 #include "Sema/Scope.h"
-#include "llvm/ADT/SmallString.h"
 
 class SemaVisitor : public ASTVisitor {
   Scope* Scp;
   TypeAST::TypeKind LastType;
   size_t LastArraySize;
-  llvm::StringRef LastFunctionName;
+  std::string LastFunctionName;
   bool HasError;
 
-  void error(const llvm::SmallString<128>& Message);
+  void error(const std::string& Message);
 
-  static std::string typeToString(const TypeAST::TypeKind Type);
-  static llvm::SmallString<128> generateAlreadyMessage(const llvm::StringRef& Name);
-  static llvm::SmallString<128> generateNotDeclaredMessage(const llvm::StringRef& Name);
-  static llvm::SmallString<128> generateNotMatchTypeMessage(const llvm::StringRef& Name, TypeAST::TypeKind Type);
-  static llvm::SmallString<128> generateNotMatchSizeMessage(const llvm::StringRef& Name, size_t Size);
-  static llvm::SmallString<128> generateWrongArgumentsAmountMessage(const llvm::StringRef& Name, size_t Size);
-  static llvm::SmallString<128> generateWrongGetByIndexMessage(const llvm::StringRef& Name);
-  static llvm::SmallString<128> generateNotIntegerIndexMessage();
-  static llvm::SmallString<128> generateNotIntegerExpressionMessage();
-public:
+  static std::string typeToString(TypeAST::TypeKind Type);
+  static std::string generateAlreadyMessage(const std::string& Name);
+  static std::string generateNotDeclaredMessage(const std::string& Name);
+  static std::string generateNotMatchTypeMessage(const std::string& Name, TypeAST::TypeKind Type);
+  static std::string generateNotMatchSizeMessage(const std::string& Name, size_t Size);
+  static std::string generateWrongArgumentsAmountMessage(const std::string& Name, size_t Size);
+  static std::string generateWrongGetByIndexMessage(const std::string& Name);
+  static std::string generateNotIntegerIndexMessage();
+  static std::string generateNotIntegerExpressionMessage();
+ public:
   SemaVisitor() : Scp(nullptr), LastType(TypeAST::Void), LastArraySize(0), HasError(false) {}
 
   bool hasError();

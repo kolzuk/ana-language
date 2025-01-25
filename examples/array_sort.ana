@@ -1,24 +1,39 @@
-fun bubbleSort(array[10000] arr, integer n) -> integer {
-    integer i = 0;
-    integer j = 0;
-    integer temp = 0;
-    while (i < n) {
-        j = 0;
-        while (j < n - i - 1) {
-            if (arr[j] > arr[j + 1]) {
-                temp = arr[j];
-                arr[j] = arr[j + 1];
-                arr[j + 1] = temp;
-            }
-            j = j + 1;
-        }
-        i = i + 1;
-    }
+fun partition(array arr, integer l, integer r) -> integer {
+   integer v = arr[(l + r) / 2];
+   integer i = l;
+   integer j = r;
+   while (i <= j) {
+     while (arr[i] < v) {
+       i = i + 1;
+     }
+     while (arr[j] > v) {
+       j = j - 1;
+     }
+     if (i >= j) {
+        break;
+     }
 
-    return 0;
+     integer tmp = arr[i];
+     arr[i] = arr[j];
+     arr[j] = tmp;
+     i = i + 1;
+     j = j - 1;
+   }
+
+   return j;
 }
 
-fun printArray(array[10000] arr, integer size) -> integer {
+fun quicksort(array arr, integer l, integer r) -> integer {
+  if (l < r) {
+    integer q = partition(arr, l, r);
+    quicksort(arr, l, q);
+    quicksort(arr, q + 1, r);
+  }
+
+  return 0;
+}
+
+fun printArray(array arr, integer size) -> integer {
     integer loop = 0;
     while (loop < size) {
         print arr[loop];
@@ -28,7 +43,7 @@ fun printArray(array[10000] arr, integer size) -> integer {
     return 0;
 }
 
-fun generateArray(array[10000] arr, integer size) -> integer {
+fun generateArray(array arr, integer size) -> integer {
     integer loop = 0;
     while (loop < size) {
         arr[loop] = size - loop;
@@ -39,9 +54,9 @@ fun generateArray(array[10000] arr, integer size) -> integer {
 }
 
 fun main() -> integer {
-    array[10000] a;
+    array a = new array[10000];
     generateArray(a, 10000);
-    bubbleSort(a, 10000);
+    quicksort(a, 0, 9999);
     printArray(a, 10000);
     return 0;
 }

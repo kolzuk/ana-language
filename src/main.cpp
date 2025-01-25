@@ -1,111 +1,84 @@
-#include "Jit/JitInterpreter.h"
+#include "Parser/Parser.h"
+#include "Sema/Sema.h"
+#include "Bytecode/BytecodeGenerator.h"
+#include "VirtualMachine/VirtualMachine.h"
+#include "Codegen/Optimizer.h"
 
-int main() {
+#include <iostream>
+#include <fstream>
+#include <filesystem>
+#include <cstring>
 
-  char bytecode[] {
-      OpCode::FUN, 'f', 'a', 'c', 0, BytecodeType::INT_TYPE,
-      BytecodeType::INT_TYPE, 'x', 0,
-      0,
-      OpCode::CMP_GT,
-      BytecodeType::INT_TYPE, 'x', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
-      'n', 'e', 'x', 't', 0,
-      OpCode::RETURN,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
+std::string ConvertOperationToString(Operation operation) {
+  switch (operation) {
+    case ADD: return "ADD";
+    case SUB: return "SUB";
+    case MUL: return "MUL";
+    case DIV: return "DIV";
+    case MOD: return "MOD";
+    case PUSH: return "PUSH";
+    case INTEGER_LOAD: return "INTEGER_LOAD";
+    case ARRAY_LOAD: return "ARRAY_LOAD";
+    case LOAD_FROM_INDEX: return "LOAD_FROM_INDEX";
+    case INTEGER_STORE: return "INTEGER_STORE";
+    case ARRAY_STORE: return "ARRAY_STORE";
+    case STORE_IN_INDEX: return "STORE_IN_INDEX";
+    case NEW_ARRAY: return "NEW_ARRAY";
+    case PRINT: return "PRINT";
+    case FUN_CALL: return "FUN_CALL";
+    case RETURN: return "RETURN";
+    case LABEL: return "LABEL";
+    case JUMP: return "JUMP";
+    case CMP: return "CMP";
+    case JUMP_EQ: return "JUMP_EQ";
+    case JUMP_NE: return "JUMP_NE";
+    case JUMP_LT: return "JUMP_LT";
+    case JUMP_LE: return "JUMP_LE";
+    case JUMP_GT: return "JUMP_GT";
+    case JUMP_GE: return "JUMP_GE";
+    case FUN_BEGIN: return "FUN_BEGIN";
+    case FUN_END: return "FUN_END";
+  }
+}
 
-      OpCode::BLOCK, 'n', 'e', 'x', 't', 0,
-      OpCode::NEW_INT, 'y', 0,
-      OpCode::ASSIGN,
-      BytecodeType::INT_TYPE, 'y', 0,
-      BytecodeType::INT_TYPE, 'x', 0,
-      OpCode::SUB,
-      BytecodeType::INT_TYPE, 'y', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
-      // y = fac(y)
-      OpCode::CALL, 'f', 'a', 'c', 0,
-      BytecodeType::INT_TYPE, 'y', 0,
-      BytecodeType::INT_TYPE, 'y', 0,
-      OpCode::MUL,
-      BytecodeType::INT_TYPE, 'x', 0,
-      BytecodeType::INT_TYPE, 'y', 0,
-      OpCode::RETURN,
-      BytecodeType::INT_TYPE, 'x', 0,
-      OpCode::FUN_END,
+int main(int argc, const char** argv) {
+  if (argc != 2) {
+    std::cerr << "usage: anac file\n";
+    return -1;
+  }
 
-      // fun main() -> void
-      OpCode::FUN, 'm', 'a', 'i', 'n', 0, BytecodeType::VOID_TYPE,
-      0,
-      OpCode::NEW_INT, 'c', 0,
+  std::string SourceFile = argv[1];
+  std::cout << "Compiling... " << SourceFile << '\n';
 
-      // c = fac(20)
-      OpCode::CALL, 'f', 'a', 'c', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 20,
-      BytecodeType::INT_TYPE, 'c', 0,
+  std::ifstream File(SourceFile);
+  if (!File) {
+    std::cerr << "Error opening file" << std::endl;
+    return -1;
+  }
 
-      // print c
-      OpCode::PRINT, BytecodeType::INT_TYPE, 'c', 0,
+  std::string Buffer((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
 
-      // array[3] arr
-      OpCode::NEW_ARRAY, 'a', 'r', 'r', 0,
-      0, 0, 0, 0, 0, 0, 0, 3,
+  Lexer Lexer(Buffer);
+  Parser Parser(Lexer);
+  AST* Tree = Parser.parse();
+  if (!Tree || Parser.hasError()) {
+    std::cerr << "Syntax errors occured\n";
+    return 0;
+  }
 
-      OpCode::NEW_INT, 'i', 0,
-      OpCode::NEW_INT, 't', 0, //  t - указатель
+  BytecodeGenerator CodeGen;
+  auto Bytecode = CodeGen.generate(*Tree);
+  for (int i = 0; i < Bytecode.size(); ++i) {
+    std::cout << i << ' ' << ConvertOperationToString(Bytecode[i].first) << ' ';
+    for (int j = 0; j < Bytecode[i].second.size(); ++j) {
+      std::cout << Bytecode[i].second[j] << ' ';
+    }
 
-      // t = arr
-      OpCode::ASSIGN,
-      BytecodeType::INT_TYPE, 't', 0,
-      BytecodeType::INT_TYPE, 'a', 'r', 'r', 0,
+    std::cout << '\n';
+  }
+  VirtualMachine vm(100000);
+  vm.Execute(Bytecode);
+  File.close();
 
-      OpCode::BLOCK, 'c', 'o', 'n', 'd', 0,
-
-      // if i >= 3 goto after
-      OpCode::CMP_GE,
-      BytecodeType::INT_TYPE, 'i', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 3,
-      'a', 'f', 't', 'e', 'r', 0,
-
-      // *(t + 0) = i
-      OpCode::ASSIGN,
-      BytecodeType::INDEX, 't', 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      BytecodeType::INT_TYPE, 'i', 0,
-
-      // i = i + 1
-      OpCode::ADD,
-      BytecodeType::INT_TYPE, 'i', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 1,
-
-      // t = t + 8
-      OpCode::ADD,
-      BytecodeType::INT_TYPE, 't', 0,
-      BytecodeType::INT_LITERAL, 0, 0, 0, 0, 0, 0, 0, 8,
-
-      // goto cond
-      OpCode::GOTO, 'c', 'o', 'n', 'd', 0,
-
-      OpCode::BLOCK, 'a', 'f', 't', 'e', 'r', 0,
-
-      // print arr[0]
-      OpCode::PRINT,
-      BytecodeType::INDEX, 'a', 'r', 'r', 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-
-      // print arr[1]
-      OpCode::PRINT,
-      BytecodeType::INDEX, 'a', 'r', 'r', 0,
-      0, 0, 0, 0, 0, 0, 0, 1,
-
-      // print arr[2]
-      OpCode::PRINT,
-      BytecodeType::INDEX, 'a', 'r', 'r', 0,
-      0, 0, 0, 0, 0, 0, 0, 2,
-
-      OpCode::RETURN_VOID,
-      OpCode::FUN_END,
-      OpCode::END
-  };
-
-  JitInterpreter Interpreter;
-  Interpreter.execute(bytecode);
+  return vm.getReturnCode();
 }

@@ -6,7 +6,7 @@ AST* Parser::parse() {
 
 /// compilationUnit : ( declaration )*;
 CompilationUnitAST* Parser::parseCompilationUnit() {
-  llvm::SmallVector<DeclarationAST*, 8> Declarations;
+  std::vector<DeclarationAST*> Declarations;
   while (!Tok.is(TokenKind::EOI)) {
     DeclarationAST* Declaration = parseDeclaration();
     Declarations.push_back(Declaration);
@@ -59,7 +59,7 @@ FunctionDeclarationAST* Parser::parseFunctionDeclaration() {
   return new FunctionDeclarationAST(Type, Ident, ArgList, SS);
 }
 
-/// type : "integer" | "array" "[" expression "]";
+/// type : "integer" | "array"
 TypeAST* Parser::parseType() {
   if (Tok.is(TokenKind::KW_integer)) {
     nextToken();
@@ -67,11 +67,7 @@ TypeAST* Parser::parseType() {
   }
   if (Tok.is(TokenKind::KW_array)) {
     nextToken();
-    consume(TokenKind::LSquare);
-    auto* Size = new IntegerLiteralAST(Tok.getText());
-    nextToken();
-    consume(TokenKind::RSquare);
-    return new ArrayTypeAST(Size);
+    return new ArrayTypeAST();
   }
   error();
   return nullptr;
@@ -121,8 +117,8 @@ RelationAST* Parser::parseRelation() {
 /// simpleExpression : term (addOperator term)*;
 SimpleExpressionAST* Parser::parseSimpleExpression() {
   auto* FirstTrm = parseTerm();
-  llvm::SmallVector<AddOperatorAST*> AddOperators;
-  llvm::SmallVector<TermAST*> Terms;
+  std::vector<AddOperatorAST*> AddOperators;
+  std::vector<TermAST*> Terms;
 
   while (Tok.isOneOf(TokenKind::Plus, TokenKind::Minus)) {
     auto AddOper = parseAddOperator();
@@ -152,8 +148,8 @@ AddOperatorAST* Parser::parseAddOperator() {
 /// term : factor (mulOperator factor)*;
 TermAST* Parser::parseTerm() {
   auto* FirstFactor = parseMulOperand();
-  llvm::SmallVector<MulOperatorAST*> MulOperators;
-  llvm::SmallVector<MulOperandAST*> Factors;
+  std::vector<MulOperatorAST*> MulOperators;
+  std::vector<MulOperandAST*> Factors;
 
   while (Tok.isOneOf(TokenKind::Star, TokenKind::Slash, TokenKind::Percent)) {
     auto* MulOper = parseMulOperator();
@@ -213,7 +209,7 @@ FactorAST* Parser::parseFactor() {
     return new ExpressionFactorAST(Expr);
   }
 
-  if (Tok.is(TokenKind::LSquare)) {
+  if (Tok.is(TokenKind::KW_new)) {
     return parseArrayInitialization();
   }
 
@@ -280,6 +276,9 @@ StatementAST* Parser::parseStatement() {
   if (Tok.is(TokenKind::KW_if)) {
     return parseIfStatement();
   }
+  if (Tok.is(TokenKind::KW_for)) {
+    return parseForStatement();
+  }
   if (Tok.is(TokenKind::KW_while)) {
     return parseWhileStatement();
   }
@@ -316,8 +315,8 @@ AssignStatementAST* Parser::parseAssignStatement() {
 
 /// argumentList : ( type identifier ( "," type identifier )* )?
 ArgumentsListAST* Parser::parseArgumentsList() {
-  llvm::SmallVector<IdentifierAST*> Idents;
-  llvm::SmallVector<TypeAST*> Types;
+  std::vector<IdentifierAST*> Idents;
+  std::vector<TypeAST*> Types;
   if (Tok.is(TokenKind::RParen)) {
     return new ArgumentsListAST(Idents, Types);
   } else {
@@ -338,7 +337,7 @@ ArgumentsListAST* Parser::parseArgumentsList() {
 
 /// expressionList : ( expression ( "," expression )* )? ;
 ExpressionsListAST* Parser::parseExpressionsList() {
-  llvm::SmallVector<ExpressionAST*> Exprs;
+  std::vector<ExpressionAST*> Exprs;
   if (Tok.is(TokenKind::RParen)) {
     return new ExpressionsListAST(Exprs);
   } else {
@@ -353,20 +352,14 @@ ExpressionsListAST* Parser::parseExpressionsList() {
   return new ExpressionsListAST(Exprs);
 }
 
-/// arrayInitialization : "[" (expression ("," expression)*) "]";
+/// arrayInitialization : "new" "array" "[" expression "]";
 ArrayInitializationAST* Parser::parseArrayInitialization() {
+  consume(TokenKind::KW_new);
+  consume(TokenKind::KW_array);
   consume(TokenKind::LSquare);
-  llvm::SmallVector<ExpressionAST*> Exprs;
-  auto* E = parseExpression();
-  Exprs.push_back(E);
-
-  while (Tok.is(TokenKind::Comma)) {
-    nextToken();
-    E = parseExpression();
-    Exprs.push_back(E);
-  }
+  auto* Expr = parseExpression();
   consume(TokenKind::RSquare);
-  return new ArrayInitializationAST(Exprs);
+  return new ArrayInitializationAST(Expr);
 }
 
 /// getByIndex : identifier "[" expression "]";
@@ -408,6 +401,22 @@ IfStatementAST* Parser::parseIfStatement() {
   }
 
   return new IfStatementAST(Expr, SS, new StatementSequenceAST(std::vector<StatementAST*>()));
+}
+
+/// forStatement : "for" "(" variableDeclaration ";" expression ";" expression ")" "{" statementSequence "}"
+ForStatementAST* Parser::parseForStatement() {
+  consume(TokenKind::KW_for);
+  consume(TokenKind::LParen);
+  auto* Initialization = parseVariableDeclaration();
+  auto* Condition = parseExpression();
+  consume(TokenKind::Semicolon);
+  auto* Update = parseAssignStatement();
+  consume(TokenKind::RParen);
+  consume(TokenKind::LFigure);
+  auto* Body = parseStatementSequence();
+  consume(TokenKind::RFigure);
+
+  return new ForStatementAST(Initialization, Condition, Update, Body);
 }
 
 /// whileStatement : "while" "(" expression ")" "{" statementSequence "}"

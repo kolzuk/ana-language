@@ -1,4 +1,4 @@
-fun findPrimes(array[100000] primes, integer n) -> integer {
+fun findPrimes(array primes, integer n) -> integer {
     integer i = 0;
 
     while (i < n) {
@@ -21,7 +21,7 @@ fun findPrimes(array[100000] primes, integer n) -> integer {
     return 0;
 }
 
-fun printArray(array[100000] arr, integer size) -> integer {
+fun printArray(array arr, integer size) -> integer {
     integer loop = 1;
     while (loop < size) {
         if (arr[loop] == 1) {
@@ -34,7 +34,7 @@ fun printArray(array[100000] arr, integer size) -> integer {
 }
 
 fun main() -> integer {
-    array[100000] primes;
+    array primes = new array[100000];
     findPrimes(primes, 100000);
     printArray(primes, 100000);
 

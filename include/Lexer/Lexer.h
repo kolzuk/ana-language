@@ -15,8 +15,8 @@ class Lexer {
   size_t CurrentColumn;
 
  public:
-  explicit Lexer(const llvm::StringRef& Buffer) {
-    BufferStart = Buffer.begin();
+  explicit Lexer(const std::string& Buffer) {
+    BufferStart = Buffer.c_str();
     BufferPtr = BufferStart;
     CurrentLine = 1;
     CurrentColumn = 1;

@@ -1,9 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <llvm/ADT/StringMap.h>
-#include <llvm/Support/raw_ostream.h>
-
+#include <iostream>
 #include "AST.h"
 #include "Lexer/Lexer.h"
 
@@ -12,16 +10,21 @@ class Parser {
   Token Tok;
   bool HasError;
 
-  void error() {
-    llvm::errs() << "[line " << Tok.getLine() << ", column " << Tok.getColumn() << "] Unexpected: " << Tok.getText() << "\n";
-    HasError = true;
-  }
-
   void nextToken() { Lex.next(Tok); }
+
+  bool error(const std::string& ErrorMessage = "") {
+    if (!ErrorMessage.empty()) {
+      std::cerr << ErrorMessage << std::endl;
+    }
+    HasError = true;
+    return true;  }
 
   bool expect(TokenKind Kind) {
     if (Tok.getKind() != Kind) {
-      error();
+      std::string ErrorMessage =
+          "[line " + std::to_string(Tok.getLine()) + ", column " + std::to_string(Tok.getColumn())
+          + "]. Expected: " + Token::toString(Kind) + ". Unexpected: " + Tok.getText();
+      error(ErrorMessage);
       return true;
     }
 
@@ -45,6 +48,7 @@ class Parser {
   AssignStatementAST* parseAssignStatement();
 
   IfStatementAST* parseIfStatement();
+  ForStatementAST* parseForStatement();
   WhileStatementAST* parseWhileStatement();
   ReturnStatementAST* parseReturnStatement();
   PrintStatementAST* parsePrintStatement();

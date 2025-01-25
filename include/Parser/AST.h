@@ -1,11 +1,9 @@
 #ifndef AST_H
 #define AST_H
 
-#include <llvm/ADT/StringMap.h>
-
+#include <string>
 #include <utility>
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringRef.h"
+#include <vector>
 
 class AST;
 
@@ -17,6 +15,7 @@ class FunctionDeclarationAST;
 class StatementSequenceAST;
 class StatementAST;
 class IfStatementAST;
+class ForStatementAST;
 class WhileStatementAST;
 class ReturnStatementAST;
 class AssignStatementAST;
@@ -59,6 +58,7 @@ class ASTVisitor {
   virtual void visit(StatementSequenceAST&) = 0;
   virtual void visit(StatementAST&) {};
   virtual void visit(IfStatementAST&) = 0;
+  virtual void visit(ForStatementAST&) = 0;
   virtual void visit(WhileStatementAST&) = 0;
   virtual void visit(ReturnStatementAST&) = 0;
   virtual void visit(AssignStatementAST&) = 0;
@@ -98,7 +98,7 @@ class AST {
 
 class CompilationUnitAST : public AST {
  public:
-  using DeclarationsVector = llvm::SmallVector<DeclarationAST*, 8>;
+  using DeclarationsVector = std::vector<DeclarationAST*>;
   DeclarationsVector Declarations;
 
   explicit CompilationUnitAST(DeclarationsVector Declarations) : Declarations(std::move(Declarations)) {}
@@ -170,6 +170,27 @@ class IfStatementAST : public StatementAST {
 
   explicit IfStatementAST(ExpressionAST* Condition, StatementSequenceAST* Body, StatementSequenceAST* ElseBody)
       : Condition(Condition), Body(Body), ElseBody(ElseBody) {}
+  void accept(ASTVisitor& V) override {
+    V.visit(*this);
+  }
+};
+
+class ForStatementAST : public StatementAST {
+ public:
+  VariableDeclarationAST* Initialization;
+  AssignStatementAST* Update;
+  ExpressionAST* Condition;
+  StatementSequenceAST* Body;
+
+  explicit ForStatementAST(VariableDeclarationAST* Initialization,
+                           ExpressionAST* Condition,
+                           AssignStatementAST* Update,
+                           StatementSequenceAST* Body)
+      : Initialization(Initialization),
+        Update(Update),
+        Condition(Condition),
+        Body(Body) {}
+
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -256,7 +277,8 @@ class VoidTypeAST : public TypeAST {
 
 class IntegerTypeAST : public TypeAST {
  public:
-  IntegerTypeAST() : TypeAST(TypeKind::Integer) {}
+  IntegerTypeAST()
+    : TypeAST(TypeKind::Integer) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -264,9 +286,8 @@ class IntegerTypeAST : public TypeAST {
 
 class ArrayTypeAST : public TypeAST {
  public:
-  IntegerLiteralAST* Size;
-  explicit ArrayTypeAST(IntegerLiteralAST* Size)
-      : Size(Size), TypeAST(TypeKind::Array) {}
+  explicit ArrayTypeAST()
+      : TypeAST(TypeKind::Array) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -307,13 +328,13 @@ class RelationAST : public AST {
 class SimpleExpressionAST : public AST {
  public:
   TermAST* Trm;
-  llvm::SmallVector<AddOperatorAST*> AddOperators;
-  llvm::SmallVector<TermAST*> Terms;
+  std::vector<AddOperatorAST*> AddOperators;
+  std::vector<TermAST*> Terms;
 
   explicit SimpleExpressionAST(
       TermAST* Trm,
-      llvm::SmallVector<AddOperatorAST*> AddOperator,
-      llvm::SmallVector<TermAST*> Terms)
+      std::vector<AddOperatorAST*> AddOperator,
+      std::vector<TermAST*> Terms)
       : Trm(Trm), AddOperators(std::move(AddOperator)), Terms(std::move(Terms)) {}
 
   void accept(ASTVisitor& V) override {
@@ -338,13 +359,13 @@ class AddOperatorAST : public AST {
 class TermAST : public AST {
  public:
   MulOperandAST* MulOperand;
-  llvm::SmallVector<MulOperatorAST*> MulOperators;
-  llvm::SmallVector<MulOperandAST*> MulOperands;
+  std::vector<MulOperatorAST*> MulOperators;
+  std::vector<MulOperandAST*> MulOperands;
 
   explicit TermAST(
       MulOperandAST* MulOperand,
-      llvm::SmallVector<MulOperatorAST*> MulOperators,
-      llvm::SmallVector<MulOperandAST*> MulOperands)
+      std::vector<MulOperatorAST*> MulOperators,
+      std::vector<MulOperandAST*> MulOperands)
       : MulOperand(MulOperand), MulOperators(std::move(MulOperators)), MulOperands(std::move(MulOperands)) {}
 
   void accept(ASTVisitor& V) override {
@@ -374,7 +395,7 @@ class MulOperandAST : public AST {
 
   explicit MulOperandAST(FactorAST* Factor, UnaryOperatorAST* Operator)
       : Factor(Factor), Operator(Operator) {}
-      void accept(ASTVisitor& V) override {
+  void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
 };
@@ -413,8 +434,8 @@ class GetByIndexAST : public FactorAST {
 
 class IdentifierAST : public FactorAST {
  public:
-  llvm::StringRef Value;
-  explicit IdentifierAST(llvm::StringRef Value) : Value(Value) {}
+  std::string Value;
+  explicit IdentifierAST(std::string Value) : Value(Value) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -422,8 +443,8 @@ class IdentifierAST : public FactorAST {
 
 class IntegerLiteralAST : public FactorAST {
  public:
-  llvm::StringRef Value;
-  explicit IntegerLiteralAST(llvm::StringRef Value) : Value(Value) {}
+  std::string Value;
+  explicit IntegerLiteralAST(std::string Value) : Value(Value) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -431,9 +452,9 @@ class IntegerLiteralAST : public FactorAST {
 
 class ArrayInitializationAST : public FactorAST {
  public:
-  llvm::SmallVector<ExpressionAST*> Exprs;
+  ExpressionAST* Expr;
 
-  explicit ArrayInitializationAST(llvm::SmallVector<ExpressionAST*> Exprs) : Exprs(std::move(Exprs)) {}
+  explicit ArrayInitializationAST(ExpressionAST* Expr) : Expr(Expr) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -451,9 +472,9 @@ class ExpressionFactorAST : public FactorAST {
 
 class ExpressionsListAST : public AST {
  public:
-  llvm::SmallVector<ExpressionAST*> Exprs;
+  std::vector<ExpressionAST*> Exprs;
 
-  explicit ExpressionsListAST(llvm::SmallVector<ExpressionAST*> Exprs) : Exprs(std::move(Exprs)) {}
+  explicit ExpressionsListAST(std::vector<ExpressionAST*> Exprs) : Exprs(std::move(Exprs)) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -461,10 +482,10 @@ class ExpressionsListAST : public AST {
 
 class ArgumentsListAST : public AST {
  public:
-  llvm::SmallVector<IdentifierAST*> Idents;
-  llvm::SmallVector<TypeAST*> Types;
+  std::vector<IdentifierAST*> Idents;
+  std::vector<TypeAST*> Types;
 
-  explicit ArgumentsListAST(llvm::SmallVector<IdentifierAST*> Idents, llvm::SmallVector<TypeAST*> Types)
+  explicit ArgumentsListAST(std::vector<IdentifierAST*> Idents, std::vector<TypeAST*> Types)
       : Idents(std::move(Idents)), Types(std::move(Types)) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);

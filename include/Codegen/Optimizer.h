@@ -8,7 +8,7 @@
 
 class Optimizer {
  public:
-  static void optimize(std::vector<std::pair<Operation, std::string>>& Module);
+  static void optimize(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode);
 };
 
 #endif //OPTIMIZER_H
