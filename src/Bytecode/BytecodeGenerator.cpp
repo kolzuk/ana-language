@@ -11,7 +11,6 @@ class ToBytecode : public ASTVisitor {
   std::string CurWhileAfterLabel;
   bool IsAssignment = false;
   std::unordered_map<std::string, TypeAST::TypeKind> TypeMap;
-  std::string CurArrToAssign;
   bool IsAssignedArr;
 
   std::string newLabel() {
@@ -29,24 +28,17 @@ class ToBytecode : public ASTVisitor {
 
   void visit(VariableDeclarationAST& Node) override {
     TypeMap[Node.Ident->Value] = Node.T->Type;
+
     if (Node.Expr) {
-      if (Node.T->Type == TypeAST::Array) {
-        CurArrToAssign = Node.Ident->Value;
-        IsAssignedArr = false;
-      }
       Node.Expr->accept(*this);
-      if (Node.T->Type == TypeAST::Integer) {
-        Builder.assign(Node.Ident->Value);
-      } else if (!IsAssignedArr) {
-        Builder.storeArray(Node.Ident->Value);
-      }
-    } else if (Node.T->Type == TypeAST::Array) {
-      auto* ArrayType = dynamic_cast<ArrayTypeAST*>(Node.T);
-      Builder.push(ArrayType->Size->Value);
-      Builder.allocNewArray(Node.Ident->Value);
+
+      if (Node.T->Type == TypeAST::Array)
+        Builder.arrayStore(Node.Ident->Value);
+      if (Node.T->Type == TypeAST::Integer)
+        Builder.integerStore(Node.Ident->Value);
     } else {
       Builder.push("0");
-      Builder.assign(Node.Ident->Value);
+      Builder.integerStore(Node.Ident->Value);
     }
   }
 
@@ -65,11 +57,11 @@ class ToBytecode : public ASTVisitor {
       }
       Names.push_back(Node.Arguments->Idents[i]->Value);
     }
-    Builder.addFunction(Names);
+    Builder.funBegin(Names);
 
     Node.Body->accept(*this);
 
-    Builder.endFunction();
+    Builder.funEnd();
   }
 
   void visit(StatementSequenceAST& Node) override {
@@ -100,13 +92,52 @@ class ToBytecode : public ASTVisitor {
     }
 
     Node.Body->accept(*this);
-    Builder.addGoto(AfterLabel);
+    Builder.jump(AfterLabel);
 
     Builder.label(ElseLabel);
     Node.ElseBody->accept(*this);
 
     Builder.label(AfterLabel);
   }
+
+  void visit(ForStatementAST& Node) override {
+    auto CondLabel = newLabel();
+    auto AfterLabel = newLabel();
+
+    Node.Initialization->accept(*this);
+    Builder.label(CondLabel);
+    Node.Condition->RHS->accept(*this);
+    Node.Condition->LHS->accept(*this);
+
+    Builder.cmp();
+    switch (Node.Condition->Rel->RelKind) {
+      case RelationAST::Less:Builder.jumpGe(AfterLabel);
+        break;
+      case RelationAST::Equal:Builder.jumpNe(AfterLabel);
+        break;
+      case RelationAST::NotEqual:Builder.jumpEq(AfterLabel);
+        break;
+      case RelationAST::LessEq:Builder.jumpGt(AfterLabel);
+        break;
+      case RelationAST::Greater:Builder.jumpLe(AfterLabel);
+        break;
+      case RelationAST::GreaterEq:Builder.jumpLt(AfterLabel);
+        break;
+    }
+
+    auto Temp1 = CurWhileConditionLabel;
+    auto Temp2 = CurWhileAfterLabel;
+    CurWhileConditionLabel = CondLabel;
+    CurWhileAfterLabel = AfterLabel;
+    Node.Body->accept(*this);
+    Node.Update->accept(*this);
+    Builder.jump(CondLabel);
+    Builder.label(AfterLabel);
+
+    CurWhileConditionLabel = Temp1;
+    CurWhileAfterLabel = Temp2;
+  }
+
 
   void visit(WhileStatementAST& Node) override {
     auto CondLabel = newLabel();
@@ -137,19 +168,18 @@ class ToBytecode : public ASTVisitor {
     CurWhileConditionLabel = CondLabel;
     CurWhileAfterLabel = AfterLabel;
     Node.Body->accept(*this);
-    Builder.addGoto(CondLabel);
+    Builder.jump(CondLabel);
     Builder.label(AfterLabel);
-
     CurWhileConditionLabel = Temp1;
     CurWhileAfterLabel = Temp2;
   }
 
   void visit(BreakStatementAST& Node) override {
-    Builder.addGoto(CurWhileAfterLabel);
+    Builder.jump(CurWhileAfterLabel);
   }
 
   void visit(ContinueStatementAST& Node) override {
-    Builder.addGoto(CurWhileConditionLabel);
+    Builder.jump(CurWhileConditionLabel);
   }
 
   void visit(ReturnStatementAST& Node) override {
@@ -213,7 +243,7 @@ class ToBytecode : public ASTVisitor {
           break;
       }
       Builder.push("1");
-      Builder.addGoto(AfterLabel);
+      Builder.jump(AfterLabel);
       Builder.label(FalseLabel);
       Builder.push("0");
       Builder.label(AfterLabel);
@@ -286,15 +316,15 @@ class ToBytecode : public ASTVisitor {
   void visit(IdentifierAST& Node) override {
     if (IsAssignment) {
       if (TypeMap[Node.Value] == TypeAST::Integer) {
-        Builder.assign(Node.Value);
+        Builder.integerStore(Node.Value);
       } else {
-        Builder.storeArray(Node.Value);
+        Builder.arrayStore(Node.Value);
       }
     } else {
       if (TypeMap[Node.Value] == TypeAST::Integer) {
-        Builder.load(Node.Value);
+        Builder.integerLoad(Node.Value);
       } else {
-        Builder.loadArray(Node.Value);
+        Builder.arrayLoad(Node.Value);
       }
     }
   }
@@ -304,14 +334,8 @@ class ToBytecode : public ASTVisitor {
   }
 
   void visit(ArrayInitializationAST& Node) override {
-    Builder.push(std::to_string(Node.Exprs.size()));
-    Builder.allocNewArray(CurArrToAssign);
-    IsAssignedArr = true;
-    for (int i = 0; i < Node.Exprs.size(); i++) {
-      Node.Exprs[i]->accept(*this);
-      Builder.push(std::to_string(i));
-      Builder.assignByIndex(CurArrToAssign);
-    }
+    Node.Expr->accept(*this);
+    Builder.newArray();
   }
 
   void visit(GetByIndexAST& Node) override {
@@ -320,11 +344,10 @@ class ToBytecode : public ASTVisitor {
     Node.Index->accept(*this);
     IsAssignment = Tmp;
     if (IsAssignment) {
-      Builder.assignByIndex(Node.Ident->Value);
+      Builder.storeInIndex(Node.Ident->Value);
     } else {
-      Builder.loadByIndex(Node.Ident->Value);
+      Builder.loadFromIndex(Node.Ident->Value);
     }
-
   }
 
   void visit(ExpressionFactorAST& Node) override {
@@ -332,10 +355,10 @@ class ToBytecode : public ASTVisitor {
   }
 
   void visit(FunctionCallAST& Node) override {
-    for (int i = Node.ExprList->Exprs.size() - 1; i >= 0; i--) {
+    for (int64_t i = Node.ExprList->Exprs.size() - 1; i >= 0; i--)
       Node.ExprList->Exprs[i]->accept(*this);
-    }
-    Builder.addFunctionCall(Node.Ident->Value);
+
+    Builder.funCall(Node.Ident->Value);
   }
 };
 

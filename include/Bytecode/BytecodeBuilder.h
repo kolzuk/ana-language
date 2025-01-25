@@ -11,29 +11,31 @@ class BytecodeBuilder {
 
  public:
   std::vector<std::pair<Operation, std::vector<std::string>>> build();
-  void addFunction(const std::vector<std::string>& Names);
-  void endFunction();
-  void addFunctionCall(const std::string& Name);
-  void addReturn();
-  void print();
 
+  // Builder methods
   void add();
   void sub();
   void mul();
   void div();
   void mod();
-
   void push(const std::string& x);
-  void assign(const std::string& Name);
-  void storeArray(const std::string& Name);
-  void assignByIndex(const std::string& Name);
-  void load(const std::string& Name);
-  void loadByIndex(const std::string& Name);
-  void loadArray(const std::string& Name);
-  void allocNewArray(const std::string& Name);
 
-  void addGoto(const std::string& Label);
+  void integerLoad(const std::string& Name);
+  void arrayLoad(const std::string& Name);
+  void loadFromIndex(const std::string& Name);
+  void integerStore(const std::string& Name);
+  void arrayStore(const std::string& Name);
+  void storeInIndex(const std::string& Name);
+  void newArray();
+
+  void print();
+  void funBegin(const std::vector<std::string>& Names);
+  void funEnd();
+  void funCall(const std::string& Name);
+  void addReturn();
+
   void label(const std::string& Label);
+  void jump(const std::string& Label);
   void cmp();
   void jumpEq(const std::string& Label);
   void jumpNe(const std::string& Label);

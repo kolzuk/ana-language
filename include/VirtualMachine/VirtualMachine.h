@@ -56,6 +56,8 @@ class VirtualMachine {
   int64_t returnCode = 0;
   CompareResult compareResult;
   std::string lastFunctionName;
+
+  int64_t ReadFunctions(std::vector<std::pair<Operation, std::vector<std::string>>>& operations);
  public:
   explicit VirtualMachine(int64_t heapSize) : heap(heapSize), currentLine(0) {}
   void Execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations);
@@ -68,10 +70,10 @@ class VirtualMachine {
   void Mod(std::vector<std::string>& operands);
 
   void Push(std::vector<std::string>& operands);
-  void Load(std::vector<std::string>& operands);
+  void IntegerLoad(std::vector<std::string>& operands);
   void ArrayLoad(std::vector<std::string>& operands);
   void LoadFromIndex(std::vector<std::string>& operands);
-  void Store(std::vector<std::string>& operands);
+  void IntegerStore(std::vector<std::string>& operands);
   void ArrayStore(std::vector<std::string>& operands);
   void StoreInIndex(std::vector<std::string>& operands);
 
@@ -93,8 +95,6 @@ class VirtualMachine {
 
   void FunBegin(std::vector<std::string>& operands);
   void FunEnd(std::vector<std::string>& operands);
-
-  void POP(std::vector<std::string>& operands);
 };
 
 #endif //VIRTUAL_MACHINE_H

@@ -59,7 +59,7 @@ FunctionDeclarationAST* Parser::parseFunctionDeclaration() {
   return new FunctionDeclarationAST(Type, Ident, ArgList, SS);
 }
 
-/// type : "integer" | "array" "[" expression "]";
+/// type : "integer" | "array"
 TypeAST* Parser::parseType() {
   if (Tok.is(TokenKind::KW_integer)) {
     nextToken();
@@ -67,11 +67,7 @@ TypeAST* Parser::parseType() {
   }
   if (Tok.is(TokenKind::KW_array)) {
     nextToken();
-    consume(TokenKind::LSquare);
-    auto* Size = new IntegerLiteralAST(Tok.getText());
-    nextToken();
-    consume(TokenKind::RSquare);
-    return new ArrayTypeAST(Size);
+    return new ArrayTypeAST();
   }
   error();
   return nullptr;
@@ -213,7 +209,7 @@ FactorAST* Parser::parseFactor() {
     return new ExpressionFactorAST(Expr);
   }
 
-  if (Tok.is(TokenKind::LSquare)) {
+  if (Tok.is(TokenKind::KW_new)) {
     return parseArrayInitialization();
   }
 
@@ -279,6 +275,9 @@ StatementSequenceAST* Parser::parseStatementSequence() {
 StatementAST* Parser::parseStatement() {
   if (Tok.is(TokenKind::KW_if)) {
     return parseIfStatement();
+  }
+  if (Tok.is(TokenKind::KW_for)) {
+    return parseForStatement();
   }
   if (Tok.is(TokenKind::KW_while)) {
     return parseWhileStatement();
@@ -353,20 +352,14 @@ ExpressionsListAST* Parser::parseExpressionsList() {
   return new ExpressionsListAST(Exprs);
 }
 
-/// arrayInitialization : "[" (expression ("," expression)*) "]";
+/// arrayInitialization : "new" "array" "[" expression "]";
 ArrayInitializationAST* Parser::parseArrayInitialization() {
+  consume(TokenKind::KW_new);
+  consume(TokenKind::KW_array);
   consume(TokenKind::LSquare);
-  std::vector<ExpressionAST*> Exprs;
-  auto* E = parseExpression();
-  Exprs.push_back(E);
-
-  while (Tok.is(TokenKind::Comma)) {
-    nextToken();
-    E = parseExpression();
-    Exprs.push_back(E);
-  }
+  auto* Expr = parseExpression();
   consume(TokenKind::RSquare);
-  return new ArrayInitializationAST(Exprs);
+  return new ArrayInitializationAST(Expr);
 }
 
 /// getByIndex : identifier "[" expression "]";
@@ -408,6 +401,22 @@ IfStatementAST* Parser::parseIfStatement() {
   }
 
   return new IfStatementAST(Expr, SS, new StatementSequenceAST(std::vector<StatementAST*>()));
+}
+
+/// forStatement : "for" "(" variableDeclaration ";" expression ";" expression ")" "{" statementSequence "}"
+ForStatementAST* Parser::parseForStatement() {
+  consume(TokenKind::KW_for);
+  consume(TokenKind::LParen);
+  auto* Initialization = parseVariableDeclaration();
+  auto* Condition = parseExpression();
+  consume(TokenKind::Semicolon);
+  auto* Update = parseAssignStatement();
+  consume(TokenKind::RParen);
+  consume(TokenKind::LFigure);
+  auto* Body = parseStatementSequence();
+  consume(TokenKind::RFigure);
+
+  return new ForStatementAST(Initialization, Condition, Update, Body);
 }
 
 /// whileStatement : "while" "(" expression ")" "{" statementSequence "}"

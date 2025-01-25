@@ -15,6 +15,7 @@ class FunctionDeclarationAST;
 class StatementSequenceAST;
 class StatementAST;
 class IfStatementAST;
+class ForStatementAST;
 class WhileStatementAST;
 class ReturnStatementAST;
 class AssignStatementAST;
@@ -57,6 +58,7 @@ class ASTVisitor {
   virtual void visit(StatementSequenceAST&) = 0;
   virtual void visit(StatementAST&) {};
   virtual void visit(IfStatementAST&) = 0;
+  virtual void visit(ForStatementAST&) = 0;
   virtual void visit(WhileStatementAST&) = 0;
   virtual void visit(ReturnStatementAST&) = 0;
   virtual void visit(AssignStatementAST&) = 0;
@@ -173,6 +175,27 @@ class IfStatementAST : public StatementAST {
   }
 };
 
+class ForStatementAST : public StatementAST {
+ public:
+  VariableDeclarationAST* Initialization;
+  AssignStatementAST* Update;
+  ExpressionAST* Condition;
+  StatementSequenceAST* Body;
+
+  explicit ForStatementAST(VariableDeclarationAST* Initialization,
+                           ExpressionAST* Condition,
+                           AssignStatementAST* Update,
+                           StatementSequenceAST* Body)
+      : Initialization(Initialization),
+        Update(Update),
+        Condition(Condition),
+        Body(Body) {}
+
+  void accept(ASTVisitor& V) override {
+    V.visit(*this);
+  }
+};
+
 class WhileStatementAST : public StatementAST {
  public:
   ExpressionAST* Condition;
@@ -254,7 +277,8 @@ class VoidTypeAST : public TypeAST {
 
 class IntegerTypeAST : public TypeAST {
  public:
-  IntegerTypeAST() : TypeAST(TypeKind::Integer) {}
+  IntegerTypeAST()
+    : TypeAST(TypeKind::Integer) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -262,9 +286,8 @@ class IntegerTypeAST : public TypeAST {
 
 class ArrayTypeAST : public TypeAST {
  public:
-  IntegerLiteralAST* Size;
-  explicit ArrayTypeAST(IntegerLiteralAST* Size)
-      : Size(Size), TypeAST(TypeKind::Array) {}
+  explicit ArrayTypeAST()
+      : TypeAST(TypeKind::Array) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }
@@ -429,9 +452,9 @@ class IntegerLiteralAST : public FactorAST {
 
 class ArrayInitializationAST : public FactorAST {
  public:
-  std::vector<ExpressionAST*> Exprs;
+  ExpressionAST* Expr;
 
-  explicit ArrayInitializationAST(std::vector<ExpressionAST*> Exprs) : Exprs(std::move(Exprs)) {}
+  explicit ArrayInitializationAST(ExpressionAST* Expr) : Expr(Expr) {}
   void accept(ASTVisitor& V) override {
     V.visit(*this);
   }

@@ -2,6 +2,7 @@
 #include "Sema/Sema.h"
 #include "Bytecode/BytecodeGenerator.h"
 #include "VirtualMachine/VirtualMachine.h"
+#include "Codegen/Optimizer.h"
 
 #include <iostream>
 #include <fstream>
@@ -16,15 +17,15 @@ std::string ConvertOperationToString(Operation operation) {
     case DIV: return "DIV";
     case MOD: return "MOD";
     case PUSH: return "PUSH";
-    case LOAD: return "LOAD";
+    case INTEGER_LOAD: return "INTEGER_LOAD";
     case ARRAY_LOAD: return "ARRAY_LOAD";
     case LOAD_FROM_INDEX: return "LOAD_FROM_INDEX";
-    case STORE: return "STORE";
+    case INTEGER_STORE: return "INTEGER_STORE";
     case ARRAY_STORE: return "ARRAY_STORE";
     case STORE_IN_INDEX: return "STORE_IN_INDEX";
     case NEW_ARRAY: return "NEW_ARRAY";
     case PRINT: return "PRINT";
-    case CALL: return "CALL";
+    case FUN_CALL: return "FUN_CALL";
     case RETURN: return "RETURN";
     case LABEL: return "LABEL";
     case JUMP: return "JUMP";
@@ -40,13 +41,19 @@ std::string ConvertOperationToString(Operation operation) {
   }
 }
 
-void compileFile(const std::string& SourceFile) {
+int main(int argc, const char** argv) {
+  if (argc != 2) {
+    std::cerr << "usage: anac file\n";
+    return -1;
+  }
+
+  std::string SourceFile = argv[1];
   std::cout << "Compiling... " << SourceFile << '\n';
 
   std::ifstream File(SourceFile);
   if (!File) {
     std::cerr << "Error opening file" << std::endl;
-    return;
+    return -1;
   }
 
   std::string Buffer((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
@@ -56,20 +63,15 @@ void compileFile(const std::string& SourceFile) {
   AST* Tree = Parser.parse();
   if (!Tree || Parser.hasError()) {
     std::cerr << "Syntax errors occured\n";
-    return;
+    return 0;
   }
-//  Sema Sema;
-//  if (Sema.semantic(Tree)) {
-//    std::cerr << "Semantic errors occured\n";
-//    return;
-//  }
 
   BytecodeGenerator CodeGen;
   auto Bytecode = CodeGen.generate(*Tree);
-  for (int i = 0; i < Bytecode.size(); ++i) {
-    std::cout << ConvertOperationToString(Bytecode[i].first) << ' ';
-    for (int j = 0; j < Bytecode[i].second.size(); ++j) {
-      std::cout << Bytecode[i].second[j] << ' ';
+  for (auto & i : Bytecode) {
+    std::cout << ConvertOperationToString(i.first) << ' ';
+    for (int j = 0; j < i.second.size(); ++j) {
+      std::cout << i.second[j] << ' ';
     }
 
     std::cout << '\n';
@@ -77,35 +79,6 @@ void compileFile(const std::string& SourceFile) {
   VirtualMachine vm(100000);
   vm.Execute(Bytecode);
   File.close();
-}
 
-namespace fs = std::filesystem;
-
-void compileAllFilesInDir(const std::string& Dir) {
-  if (!fs::exists(Dir) || !fs::is_directory(Dir)) {
-    std::cerr << "Not found folder " << Dir << "\n";
-    return;
-  }
-
-  for (const auto& File : fs::directory_iterator(Dir)) {
-    if (fs::is_regular_file(File) && File.path().extension() == ".ana") {
-      compileFile(File.path().string());
-    }
-  }
-}
-
-int main(int argc, const char** argv) {
-  if (argc < 2) {
-    std::cerr << "Input file as argument expected\n";
-    return -1;
-  }
-
-  if (strcmp(argv[1], "-all") == 0) {
-    compileAllFilesInDir("examples");
-  } else {
-    for (int i = 1; i < argc; i++) {
-      compileFile(argv[i]);
-    }
-  }
-  return 0;
+  return vm.getReturnCode();
 }

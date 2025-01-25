@@ -4,53 +4,77 @@
 
 #include <VirtualMachine/VirtualMachine.h>
 
+// Читает входные функции, записывает все соответствующие лейблы в контекст функции
+int64_t VirtualMachine::ReadFunctions(std::vector<std::pair<Operation, std::vector<std::string>>>& operations) {
+  std::string currentFunction;
+  for (int64_t pos = 0; pos < operations.size(); ++pos) {
+    auto& [operation, operands] = operations[pos];
+
+    if (operation == FUN_BEGIN) {
+      FunBegin(operands);
+    } else if (operation == FUN_END) {
+      FunEnd(operands);
+    } else if (operation == LABEL) {
+      const std::string& labelName = operands[0];
+      functionTable[lastFunctionName].labels[labelName] = pos;
+    }
+  }
+
+  if (functionTable.find("main") == functionTable.end()) {
+    std::cerr << "Function \"main\" doesn't exist" << std::endl;
+    returnCode = -1;
+    return -1;
+  }
+
+  StackFrame stackFrame;
+  stackFrame.calledPos = 10000000;
+  stackFrame.functionContext = functionTable["main"];
+  callStack.push(stackFrame);
+
+  return functionTable["main"].pos;
+}
+
 void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations) {
-  currentLine = 0;
+  currentLine = ReadFunctions(operations) + 1;
 
   while (currentLine < operations.size()) {
     auto& [operation, operands] = operations[currentLine];
-    if (isFunctionDeclaration && operation != FUN_BEGIN && operation != FUN_END && operation != LABEL) {
-      currentLine++;
-      continue;
-    }
 
     switch (operation) {
-      case (FUN_BEGIN): FunBegin(operands); break;
-      case (FUN_END): FunEnd(operands); break;
       case (ADD): Add(operands); break;
       case (SUB): Sub(operands); break;
       case (MUL): Mul(operands); break;
       case (DIV): Div(operands); break;
       case (MOD): Mod(operands); break;
-
       case (PUSH): Push(operands); break;
-      case (LOAD): Load(operands); break;
+
+      case (INTEGER_LOAD): IntegerLoad(operands); break;
       case (ARRAY_LOAD): ArrayLoad(operands); break;
       case (LOAD_FROM_INDEX): LoadFromIndex(operands); break;
-      case (STORE): Store(operands); break;
+      case (INTEGER_STORE): IntegerStore(operands); break;
       case (ARRAY_STORE): ArrayStore(operands); break;
       case (STORE_IN_INDEX): StoreInIndex(operands); break;
-
-      case CMP: Cmp(operands); break;
-      case LABEL: Label(operands); break;
-      case JUMP: Jump(operands); break;
-      case JUMP_EQ: JumpEQ(operands); break;
-      case JUMP_NE: JumpNE(operands); break;
-      case JUMP_LT: JumpLT(operands); break;
-      case JUMP_LE: JumpLE(operands); break;
-      case JUMP_GT: JumpGT(operands); break;
-      case JUMP_GE: JumpGE(operands); break;
-
       case (NEW_ARRAY): NewArray(operands); break;
       case (PRINT): Print(operands); break;
-      case (CALL): CallFunction(operands); break;
+
+      case (CMP): Cmp(operands); break;
+      case (JUMP): Jump(operands); break;
+      case (JUMP_EQ): JumpEQ(operands); break;
+      case (JUMP_NE): JumpNE(operands); break;
+      case (JUMP_LT): JumpLT(operands); break;
+      case (JUMP_LE): JumpLE(operands); break;
+      case (JUMP_GT): JumpGT(operands); break;
+      case (JUMP_GE): JumpGE(operands); break;
       case (RETURN): Return(operands); break;
 
+      case (FUN_CALL): CallFunction(operands); break;
+      case (FUN_BEGIN): break;
+      case (FUN_END): break;
+      case (LABEL): break;
     }
 
     currentLine++;
   }
-
 }
 
 void VirtualMachine::Add(std::vector<std::string>& operands) {
@@ -121,7 +145,7 @@ void VirtualMachine::Push(std::vector<std::string>& operands) {
   operandStack.push(value);
 }
 
-void VirtualMachine::Load(std::vector<std::string>& operands) {
+void VirtualMachine::IntegerLoad(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
@@ -164,7 +188,7 @@ void VirtualMachine::LoadFromIndex(std::vector<std::string>& operands) {
   operandStack.push(heap.GetValueByIndex(pointer + index));
 }
 
-void VirtualMachine::Store(std::vector<std::string>& operands) {
+void VirtualMachine::IntegerStore(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
@@ -222,18 +246,9 @@ void VirtualMachine::Cmp(std::vector<std::string>& operands) {
     compareResult.GE = true;
 }
 
-void VirtualMachine::Label(std::vector<std::string>& operands) {
-  if (!isFunctionDeclaration) {
-    return;
-  }
-
-  std::string labelName = operands[0];
-  functionTable[lastFunctionName].labels[labelName] = currentLine;
-}
-
 void VirtualMachine::Jump(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
-  std::string label = operands[0];
+  const std::string& label = operands[0];
   currentLine = currentStackFrame.functionContext.labels[label];
 }
 
@@ -289,11 +304,9 @@ void VirtualMachine::NewArray(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   auto& operandStack = currentStackFrame.operandStack;
 
-  std::string arrayName = operands[0];
   int64_t arraySize = operandStack.top();
   operandStack.pop();
-
-  currentStackFrame.arrayVariables[arrayName] = heap.AllocateMemory(arraySize);
+  operandStack.push(heap.AllocateMemory(arraySize));
 }
 
 void VirtualMachine::Print(std::vector<std::string>& operands) {
@@ -355,18 +368,7 @@ void VirtualMachine::FunBegin(std::vector<std::string>& operands) {
   fc.functionName = functionName;
   functionTable[functionName] = fc;
   lastFunctionName = functionName;
-
-  if (functionName == "main") {
-    StackFrame stackFrame;
-    stackFrame.calledPos = 10000000;
-    stackFrame.functionContext = fc;
-    callStack.push(stackFrame);
-    isFunctionDeclaration = false;
-  } else {
-    isFunctionDeclaration = true;
-  }
 }
 
 void VirtualMachine::FunEnd(std::vector<std::string>& operands) {
-  isFunctionDeclaration = false;
 }
