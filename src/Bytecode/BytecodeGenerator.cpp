@@ -12,6 +12,7 @@ class ToBytecode : public ASTVisitor {
   bool IsAssignment = false;
   std::unordered_map<std::string, TypeAST::TypeKind> TypeMap;
   std::string CurArrToAssign;
+  bool IsAssignedArr;
 
   std::string newLabel() {
     return std::to_string(LabelCtr++);
@@ -31,11 +32,12 @@ class ToBytecode : public ASTVisitor {
     if (Node.Expr) {
       if (Node.T->Type == TypeAST::Array) {
         CurArrToAssign = Node.Ident->Value;
+        IsAssignedArr = false;
       }
       Node.Expr->accept(*this);
       if (Node.T->Type == TypeAST::Integer) {
         Builder.assign(Node.Ident->Value);
-      } else {
+      } else if (!IsAssignedArr) {
         Builder.storeArray(Node.Ident->Value);
       }
     } else if (Node.T->Type == TypeAST::Array) {
@@ -298,6 +300,7 @@ class ToBytecode : public ASTVisitor {
   void visit(ArrayInitializationAST& Node) override {
     Builder.push(std::to_string(Node.Exprs.size()));
     Builder.allocNewArray(CurArrToAssign);
+    IsAssignedArr = true;
     for (int i = 0; i < Node.Exprs.size(); i++) {
       Node.Exprs[i]->accept(*this);
       Builder.push(std::to_string(i));
