@@ -29,7 +29,11 @@ class ToBytecode : public ASTVisitor {
     TypeMap[Node.Ident->Value] = Node.T->Type;
     if (Node.Expr) {
       Node.Expr->accept(*this);
-      Builder.assign(Node.Ident->Value);
+      if (Node.T->Type == TypeAST::Integer) {
+        Builder.assign(Node.Ident->Value);
+      } else {
+        Builder.storeArray(Node.Ident->Value);
+      }
     } else if (Node.T->Type == TypeAST::Array) {
       auto* ArrayType = dynamic_cast<ArrayTypeAST*>(Node.T);
       Builder.push(ArrayType->Size->Value);
