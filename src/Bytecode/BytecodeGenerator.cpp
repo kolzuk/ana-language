@@ -248,7 +248,7 @@ class ToBytecode : public ASTVisitor {
 
   void visit(MulOperandAST& Node) override {
     Node.Factor->accept(*this);
-    if (Node.Operator->Kind == UnaryOperatorAST::Minus) {
+    if (Node.Operator && Node.Operator->Kind == UnaryOperatorAST::Minus) {
       Builder.push("0");
       Builder.sub();
     }
