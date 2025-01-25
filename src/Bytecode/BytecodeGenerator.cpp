@@ -132,12 +132,16 @@ class ToBytecode : public ASTVisitor {
         break;
     }
 
+    auto Temp1 = CurWhileConditionLabel;
+    auto Temp2 = CurWhileAfterLabel;
     CurWhileConditionLabel = CondLabel;
     CurWhileAfterLabel = AfterLabel;
     Node.Body->accept(*this);
     Builder.addGoto(CondLabel);
-
     Builder.label(AfterLabel);
+
+    CurWhileConditionLabel = Temp1;
+    CurWhileAfterLabel = Temp2;
   }
 
   void visit(BreakStatementAST& Node) override {
