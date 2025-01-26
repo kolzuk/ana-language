@@ -57,7 +57,7 @@ fun check() -> integer {
         integer stretch_depth = max_depth + 1;
 
         array check_tree = bottomUpTree(0, stretch_depth);
-        integer check = checkItem(check_tree, pow(2, stretch_depth + 1) - 1, 0);
+        integer check1 = checkItem(check_tree, pow(2, stretch_depth + 1) - 1, 0);
 
         array long_lived_tree =  bottomUpTree(0, max_depth);
 

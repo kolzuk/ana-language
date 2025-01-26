@@ -7,7 +7,6 @@
 class SemaVisitor : public ASTVisitor {
   Scope* Scp;
   TypeAST::TypeKind LastType;
-  size_t LastArraySize;
   std::string LastFunctionName;
   bool HasError;
 
@@ -23,9 +22,9 @@ class SemaVisitor : public ASTVisitor {
   static std::string generateNotIntegerIndexMessage();
   static std::string generateNotIntegerExpressionMessage();
  public:
-  SemaVisitor() : Scp(nullptr), LastType(TypeAST::Void), LastArraySize(0), HasError(false) {}
+  SemaVisitor() : Scp(nullptr), LastType(TypeAST::Void), HasError(false) {}
 
-  bool hasError();
+  [[nodiscard]] bool hasError() const;
   ArgumentsListAST* getArguments();
 
   void visit(AST& Node) override;
@@ -66,6 +65,7 @@ class SemaVisitor : public ASTVisitor {
   void visit(GetByIndexAST& Node) override;
   void visit(ExpressionFactorAST& Node) override;
   void visit(FunctionCallAST& Node) override;
+  void visit(ForStatementAST& Node) override;
 };
 
 #endif //SEMAVISITOR_H
