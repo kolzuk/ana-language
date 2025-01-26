@@ -61,6 +61,11 @@ class ToBytecode : public ASTVisitor {
 
     Node.Body->accept(*this);
 
+    if (Builder.getLastCommand().first != RETURN) {
+      Builder.push("0");
+      Builder.addReturn();
+    }
+
     Builder.funEnd();
   }
 
