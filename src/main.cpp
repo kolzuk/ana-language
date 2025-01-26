@@ -1,5 +1,6 @@
 #include "Parser/Parser.h"
 #include "Bytecode/BytecodeGenerator.h"
+#include "Sema/Sema.h"
 #include "VirtualMachine/VirtualMachine.h"
 #include "Optimizer/Optimizer.h"
 
@@ -28,6 +29,12 @@ int main(int argc, const char** argv) {
   AST* Tree = Parser.parse();
   if (!Tree || Parser.hasError()) {
     std::cerr << "Syntax errors occured\n";
+    return 0;
+  }
+
+  Sema Sema;
+  if (Sema.semantic(Tree)) {
+    std::cerr << "Semantic errors occured\n";
     return 0;
   }
 

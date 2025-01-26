@@ -18,14 +18,17 @@ class Decl {
 class Scope {
   std::string Name;
   Scope* Parent;
-  std::map<std::string, Decl*> ScopeMembers;
+  std::map<std::string, Decl*> ScopeVariables;
+  std::map<std::string, Decl*> ScopeFunc;
  public:
   explicit Scope(std::string Name, Scope *Parent = nullptr)
       : Name(std::move(Name)),
         Parent(Parent)
   {}
   bool insert(Decl *Declaration);
-  Decl* lookup(std::string Name);
+  bool insertFunc(Decl *Declaration);
+  Decl* lookup(const std::string& Name);
+  Decl* lookupFunc(const std::string& Name);
   Scope* getParent();
   std::string getName();
   Decl* getUpFunctionDecl();

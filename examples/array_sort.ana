@@ -23,34 +23,24 @@ fun partition(array arr, integer l, integer r) -> integer {
    return j;
 }
 
-fun quicksort(array arr, integer l, integer r) -> integer {
-  if (l < r) {
-    integer q = partition(arr, l, r);
-    quicksort(arr, l, q);
-    quicksort(arr, q + 1, r);
-  }
-
-  return 0;
+fun quicksort(array arr, integer l, integer r) {
+    if (l < r) {
+        integer q = partition(arr, l, r);
+        quicksort(arr, l, q);
+        quicksort(arr, q + 1, r);
+    }
 }
 
-fun printArray(array arr, integer size) -> integer {
-    integer loop = 0;
-    while (loop < size) {
-        print arr[loop];
-        loop = loop + 1;
+fun printArray(array arr, integer size) {
+    for (integer i = 0; i < size; i = i + 1) {
+        print arr[i];
     }
-
-    return 0;
 }
 
-fun generateArray(array arr, integer size) -> integer {
-    integer loop = 0;
-    while (loop < size) {
-        arr[loop] = size - loop;
-        loop = loop + 1;
+fun generateArray(array arr, integer size) {
+    for (integer i = 0; i < size; i = i + 1) {
+        arr[i] = size - i;
     }
-
-    return 0;
 }
 
 fun main() -> integer {
