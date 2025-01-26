@@ -1,0 +1,14 @@
+fun f() -> integer {
+    integer a = 1;
+    integer b = 2;
+    integer c = a + b;
+
+    return 0;
+}
+
+fun main() -> integer {
+    for (integer i = 0; i < 1001; i = i + 1) {
+       f();
+    }
+    return 0;
+}

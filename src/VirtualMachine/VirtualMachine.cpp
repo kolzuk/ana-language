@@ -363,7 +363,7 @@ void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
   std::string functionName = operands[0];
   profilingContext.functionCalls[functionName]++;
   if (profilingContext.optimizedFunctions.find(functionName) == profilingContext.optimizedFunctions.end()
-    && profilingContext.functionCalls[functionName] > profilingContext.callThreshold) {
+      && profilingContext.functionCalls[functionName] > profilingContext.callThreshold) {
     auto& bytecode = functionTable[functionName].bytecode;
     Optimizer::optimize(bytecode);
 
@@ -377,6 +377,13 @@ void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
       std::cout << '\n';
     }
     profilingContext.optimizedFunctions.insert(functionName);
+    // Update labels
+    for (int i = 0; i < bytecode.size(); ++i) {
+      if (bytecode[i].first == LABEL) {
+        auto labelName = bytecode[i].second[0];
+        functionTable[functionName].labels[labelName] = i;
+      }
+    }
   }
 
   auto& params = functionTable[functionName].paramsDeclaration;

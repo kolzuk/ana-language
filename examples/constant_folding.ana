@@ -1,0 +1,14 @@
+fun f() -> integer {
+    integer x = 3 * 7 - 4;
+    if (45 - 5 * 6 == x) {
+        integer y = (47 + 5) / 3 + 1;
+    }
+    return x;
+}
+
+fun main() -> integer {
+    for (integer i = 0; i < 1001; i = i + 1) {
+       f();
+    }
+    return 0;
+}

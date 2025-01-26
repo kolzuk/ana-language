@@ -1,0 +1,15 @@
+fun foo(integer i) -> integer {
+    integer b = 2;
+    if (b == 2) {
+        return b + 1;
+    }
+    return b;
+}
+
+fun main() -> integer {
+    for (integer i = 0; i < 1002; i = i + 1) {
+        foo(0);
+    }
+    print foo(0);
+    return 0;
+}
