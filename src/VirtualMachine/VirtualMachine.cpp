@@ -4,7 +4,8 @@
 
 #include <VirtualMachine/VirtualMachine.h>
 
-VirtualMachine::VirtualMachine(int64_t heapSize, const Bytecode& bytecode) : heap(heapSize) {
+VirtualMachine::VirtualMachine(int64_t heapSize, const Bytecode& bytecode)
+  : heap(heapSize) {
   int64_t currentPos = 0;
   std::string lastFunctionName;
   for (auto& [op, operands] : bytecode ) {
@@ -43,13 +44,18 @@ VirtualMachine::VirtualMachine(int64_t heapSize, const Bytecode& bytecode) : hea
 
   StackFrame stackFrame;
   stackFrame.functionContext = functionTable["main"];
-  callStack.push(stackFrame);
+  callStack.push_back(stackFrame);
 }
 
 void VirtualMachine::Execute() {
   while (!callStack.empty()) {
-    int64_t currentLine = callStack.top().currentPos++;
-    auto& command = callStack.top().functionContext.bytecode[currentLine];
+    int64_t currentLine = callStack.back().currentPos++;
+    profilingContext.allIterationCount++;
+    if (profilingContext.allIterationCount % profilingContext.garbageCollectorIterationThreshold == 0) {
+      garbageCollector->CollectGarbage();
+    }
+
+    auto& command = callStack.back().functionContext.bytecode[currentLine];
     auto& operation = command.first;
     auto& operands = command.second;
     switch (operation) {
@@ -87,8 +93,17 @@ void VirtualMachine::Execute() {
   }
 }
 
+void VirtualMachine::EmergencyTermination() {
+  std::cerr << "Termination of execution..." << std::endl;
+
+  while (!callStack.empty()) {
+    callStack.pop_back();
+    return;
+  }
+}
+
 void VirtualMachine::Add(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t first = operandStack.top();
@@ -100,7 +115,7 @@ void VirtualMachine::Add(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::Sub(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t first = operandStack.top();
@@ -112,7 +127,7 @@ void VirtualMachine::Sub(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::Mul(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t first = operandStack.top();
@@ -124,7 +139,7 @@ void VirtualMachine::Mul(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::Div(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t first = operandStack.top();
@@ -136,7 +151,7 @@ void VirtualMachine::Div(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::Mod(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t first = operandStack.top();
@@ -148,7 +163,7 @@ void VirtualMachine::Mod(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::Push(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t value = std::stoll(operands[0]);
@@ -156,7 +171,7 @@ void VirtualMachine::Push(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::IntegerLoad(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   const std::string& variableName = operands[0];
@@ -172,7 +187,7 @@ void VirtualMachine::IntegerLoad(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::ArrayLoad(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   std::string arrayName = operands[0];
@@ -187,7 +202,7 @@ void VirtualMachine::ArrayLoad(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::LoadFromIndex(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   std::string arrayName = operands[0];
@@ -203,7 +218,7 @@ void VirtualMachine::LoadFromIndex(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::IntegerStore(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   std::string variableName = operands[0];
@@ -213,7 +228,7 @@ void VirtualMachine::IntegerStore(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::ArrayStore(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   std::string variableName = operands[0];
@@ -223,7 +238,7 @@ void VirtualMachine::ArrayStore(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::StoreInIndex(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   std::string variableName = operands[0];
@@ -237,7 +252,7 @@ void VirtualMachine::StoreInIndex(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::Cmp(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t lhs = operandStack.top();
@@ -261,77 +276,84 @@ void VirtualMachine::Cmp(std::vector<std::string>& operands) {
 }
 
 void VirtualMachine::Jump(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   const std::string& label = operands[0];
-  callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
+  callStack.back().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::JumpEQ(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   std::string label = operands[0];
-  if (compareResult.EQ) {
-    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
-  }
+
+  if (compareResult.EQ)
+    callStack.back().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::JumpNE(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   std::string label = operands[0];
-  if (compareResult.NE) {
-    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
-  }
+
+  if (compareResult.NE)
+    callStack.back().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::JumpLT(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   std::string label = operands[0];
-  if (compareResult.LT) {
-    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
-  }
+
+  if (compareResult.LT)
+    callStack.back().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::JumpLE(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   std::string label = operands[0];
-  if (compareResult.LE) {
-    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
-  }
+
+  if (compareResult.LE)
+    callStack.back().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::JumpGT(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   std::string label = operands[0];
-  if (compareResult.GT) {
-    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
-  }
+
+  if (compareResult.GT)
+    callStack.back().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::JumpGE(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   std::string label = operands[0];
-  if (compareResult.GE) {
-    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
-  }
+
+  if (compareResult.GE)
+    callStack.back().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::NewArray(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   auto& operandStack = currentStackFrame.operandStack;
 
   int64_t arraySize = operandStack.top();
   operandStack.pop();
-  operandStack.push(heap.AllocateMemory(arraySize));
+
+  int64_t arrayPtr = heap.AllocateMemory(arraySize);
+  if (arrayPtr == -1) {
+    EmergencyTermination();
+    return;
+  }
+
+  operandStack.push(arrayPtr);
 }
 
 void VirtualMachine::Print(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   int64_t value = currentStackFrame.operandStack.top();
   currentStackFrame.operandStack.pop();
   std::cout << value << ' ';
 }
 
 void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
+  auto& currentStackFrame = callStack.back();
   StackFrame newStackFrame;
 
   std::string functionName = operands[0];
@@ -346,13 +368,13 @@ void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
   }
 
   newStackFrame.functionContext = functionTable[functionName];
-  callStack.push(newStackFrame);
+  callStack.push_back(newStackFrame);
 }
 
 void VirtualMachine::Return(std::vector<std::string>& operands) {
-  auto currentStackFrame = callStack.top();
+  auto currentStackFrame = callStack.back();
   int64_t returnedValue = currentStackFrame.operandStack.top();
-  callStack.pop();
+  callStack.pop_back();
 
   if (currentStackFrame.functionContext.functionName == "main") {
     returnCode = returnedValue;
@@ -360,6 +382,30 @@ void VirtualMachine::Return(std::vector<std::string>& operands) {
   }
 
   if (!callStack.empty()) {
-    callStack.top().operandStack.push(returnedValue);
+    callStack.back().operandStack.push(returnedValue);
+  }
+}
+
+void GarbageCollector::CollectGarbage() {
+  if (auto sharedVM = vm.lock()) {
+    int64_t heapSize = sharedVM->heap.size;
+    auto marked = std::vector<bool>(heapSize, false);
+
+    for (auto& stackFrame : sharedVM->callStack) {
+      for (auto& array : stackFrame.arrayVariables) {
+        int64_t arrayPtr = array.second;
+        int64_t arraySize = sharedVM->heap.heap[array.second - 1].value;
+        marked[array.second - 1] = true;
+        for (int64_t it = arrayPtr; it < arrayPtr + arraySize; ++it) {
+          marked[it] = true;
+        }
+      }
+    }
+
+    for (int64_t it = 0; it < heapSize; ++it) {
+      if (!marked[it]) {
+        sharedVM->heap.heap[it].isAllocated = false;
+      }
+    }
   }
 }

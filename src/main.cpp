@@ -6,8 +6,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <filesystem>
-#include <cstring>
 
 std::string ConvertOperationToString(Operation operation) {
   switch (operation) {
@@ -76,9 +74,10 @@ int main(int argc, const char** argv) {
 
     std::cout << '\n';
   }
-  VirtualMachine vm(100000, Bytecode);
-  vm.Execute();
+  auto vm = std::make_shared<VirtualMachine>(1000000, Bytecode);
+  vm->InitializeGarbageCollector();
+  vm->Execute();
   File.close();
 
-  return vm.getReturnCode();
+  return vm->getReturnCode();
 }

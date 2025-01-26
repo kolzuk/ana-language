@@ -41,22 +41,8 @@ struct Heap {
       it1 = it2 + 1;
     }
 
+    std::cerr << "Can't allocate memory: don't have a enough space" << std::endl;
     return -1;
-  }
-
-  void freeMemory(int64_t index) const {
-    if (index <= 0 || index >= size) {
-      std::cerr << "Index bound of heap size";
-      return;
-    }
-
-    index--;
-    int64_t blockSize = heap[index].value;
-
-    for (int64_t it = index; it < index + blockSize; ++it) {
-      heap[it].isAllocated = false;
-      heap[it].value = 0;
-    }
   }
 
   int64_t GetValueByIndex(int64_t index) const {

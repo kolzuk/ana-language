@@ -13,6 +13,17 @@
 #include <stack>
 #include <map>
 #include <iostream>
+#include <memory>
+
+class VirtualMachine;
+
+class GarbageCollector {
+  std::weak_ptr<VirtualMachine> vm;
+ public:
+  explicit GarbageCollector(const std::shared_ptr<VirtualMachine>& vm) : vm(vm) {}
+
+  void CollectGarbage();
+};
 
 enum ValueType {
   INTEGER,
@@ -32,8 +43,8 @@ struct StackFrame {
   std::stack<int64_t> operandStack;
   std::map<std::string, int64_t> integerVariables;
   std::map<std::string, int64_t> arrayVariables;
-  int64_t currentPos = 0;
   FunctionContext functionContext;
+  int64_t currentPos = 0;
 };
 
 struct CompareResult {
@@ -49,16 +60,28 @@ struct CompareResult {
   }
 };
 
-class VirtualMachine {
+struct ProfilingContext {
+  int64_t allIterationCount;
+  int64_t garbageCollectorIterationThreshold = 1000;
+};
+
+class VirtualMachine : public std::enable_shared_from_this<VirtualMachine>  {
+  std::shared_ptr<GarbageCollector> garbageCollector;
   Heap heap;
   std::map<std::string, FunctionContext> functionTable;
-  std::stack<StackFrame> callStack;
+  std::vector<StackFrame> callStack;
   int64_t returnCode = 0;
   CompareResult compareResult;
+  ProfilingContext profilingContext;
+  friend class GarbageCollector;
  public:
   VirtualMachine(int64_t heapSize, const Bytecode& bytecode);
   void Execute();
+  void EmergencyTermination();
   [[nodiscard]] int64_t getReturnCode() const { return returnCode; }
+  void InitializeGarbageCollector() {
+    garbageCollector = std::make_shared<GarbageCollector>(shared_from_this());
+  }
 
   void Add(std::vector<std::string>& operands);
   void Sub(std::vector<std::string>& operands);
@@ -82,7 +105,6 @@ class VirtualMachine {
   void JumpLE(std::vector<std::string>& operands);
   void JumpGT(std::vector<std::string>& operands);
   void JumpGE(std::vector<std::string>& operands);
-
 
   void NewArray(std::vector<std::string>& operands);
   void Print(std::vector<std::string>& operands);
