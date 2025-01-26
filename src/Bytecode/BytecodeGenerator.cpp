@@ -2,6 +2,7 @@
 #include "Bytecode/BytecodeBuilder.h"
 #include "Parser/AST.h"
 
+#include <cstdint>
 #include <unordered_map>
 
 class ToBytecode : public ASTVisitor {
@@ -11,7 +12,6 @@ class ToBytecode : public ASTVisitor {
   std::string CurWhileAfterLabel;
   bool IsAssignment = false;
   std::unordered_map<std::string, TypeAST::TypeKind> TypeMap;
-  bool IsAssignedArr;
 
   std::string newLabel() {
     return std::to_string(LabelCtr++);
@@ -74,29 +74,33 @@ class ToBytecode : public ASTVisitor {
     Node.Condition->RHS->accept(*this);
     Node.Condition->LHS->accept(*this);
     Builder.cmp();
-    auto ElseLabel = newLabel();
-    auto AfterLabel = newLabel();
+    auto Label = newLabel();
     switch (Node.Condition->Rel->RelKind) {
-      case RelationAST::Less:Builder.jumpGe(ElseLabel);
+      case RelationAST::Less:Builder.jumpGe(Label);
         break;
-      case RelationAST::Equal:Builder.jumpNe(ElseLabel);
+      case RelationAST::Equal:Builder.jumpNe(Label);
         break;
-      case RelationAST::NotEqual:Builder.jumpEq(ElseLabel);
+      case RelationAST::NotEqual:Builder.jumpEq(Label);
         break;
-      case RelationAST::LessEq:Builder.jumpGt(ElseLabel);
+      case RelationAST::LessEq:Builder.jumpGt(Label);
         break;
-      case RelationAST::Greater:Builder.jumpLe(ElseLabel);
+      case RelationAST::Greater:Builder.jumpLe(Label);
         break;
-      case RelationAST::GreaterEq:Builder.jumpLt(ElseLabel);
+      case RelationAST::GreaterEq:Builder.jumpLt(Label);
         break;
     }
 
     Node.Body->accept(*this);
+
+    if (Node.ElseBody->Statements.empty()) {
+      Builder.jump(Label);
+      Builder.label(Label);
+      return;
+    }
+    auto AfterLabel = newLabel();
     Builder.jump(AfterLabel);
-
-    Builder.label(ElseLabel);
+    Builder.label(Label);
     Node.ElseBody->accept(*this);
-
     Builder.label(AfterLabel);
   }
 
