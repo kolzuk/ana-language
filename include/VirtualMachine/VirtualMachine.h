@@ -19,18 +19,20 @@ enum ValueType {
   ARRAY
 };
 
+using Bytecode = std::vector<std::pair<Operation, std::vector<std::string>>>;
+
 struct FunctionContext {
   std::string functionName;
   std::vector<std::pair<std::string, ValueType>> paramsDeclaration;
   std::map<std::string, int64_t> labels;
-  int64_t pos;
+  Bytecode bytecode;
 };
 
 struct StackFrame {
   std::stack<int64_t> operandStack;
   std::map<std::string, int64_t> integerVariables;
   std::map<std::string, int64_t> arrayVariables;
-  int64_t calledPos = -1;
+  int64_t currentPos = 0;
   FunctionContext functionContext;
 };
 
@@ -51,16 +53,11 @@ class VirtualMachine {
   Heap heap;
   std::map<std::string, FunctionContext> functionTable;
   std::stack<StackFrame> callStack;
-  int64_t currentLine;
-  bool isFunctionDeclaration = false;
   int64_t returnCode = 0;
   CompareResult compareResult;
-  std::string lastFunctionName;
-
-  int64_t ReadFunctions(std::vector<std::pair<Operation, std::vector<std::string>>>& operations);
  public:
-  explicit VirtualMachine(int64_t heapSize) : heap(heapSize), currentLine(0) {}
-  void Execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations);
+  VirtualMachine(int64_t heapSize, const Bytecode& bytecode);
+  void Execute();
   [[nodiscard]] int64_t getReturnCode() const { return returnCode; }
 
   void Add(std::vector<std::string>& operands);
@@ -77,7 +74,6 @@ class VirtualMachine {
   void ArrayStore(std::vector<std::string>& operands);
   void StoreInIndex(std::vector<std::string>& operands);
 
-  void Label(std::vector<std::string>& operands);
   void Jump(std::vector<std::string>& operands);
   void Cmp(std::vector<std::string>& operands);
   void JumpEQ(std::vector<std::string>& operands);
@@ -92,9 +88,6 @@ class VirtualMachine {
   void Print(std::vector<std::string>& operands);
   void CallFunction(std::vector<std::string>& operands);
   void Return(std::vector<std::string>& operands);
-
-  void FunBegin(std::vector<std::string>& operands);
-  void FunEnd(std::vector<std::string>& operands);
 };
 
 #endif //VIRTUAL_MACHINE_H

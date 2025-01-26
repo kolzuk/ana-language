@@ -4,13 +4,11 @@
 
 #include <VirtualMachine/VirtualMachine.h>
 
-// Читает входные функции, записывает все соответствующие лейблы в контекст функции
-int64_t VirtualMachine::ReadFunctions(std::vector<std::pair<Operation, std::vector<std::string>>>& operations) {
-  std::string currentFunction;
-  for (int64_t pos = 0; pos < operations.size(); ++pos) {
-    auto& [operation, operands] = operations[pos];
-
-    if (operation == FUN_BEGIN) {
+VirtualMachine::VirtualMachine(int64_t heapSize, const Bytecode& bytecode) : heap(heapSize) {
+  int64_t currentPos = 0;
+  std::string lastFunctionName;
+  for (auto& [op, operands] : bytecode ) {
+    if (op == FUN_BEGIN) {
       std::string functionName = operands[0];
       std::vector<std::pair<std::string, ValueType>> params;
       for (int i = 1; i < operands.size(); i += 2) {
@@ -22,40 +20,38 @@ int64_t VirtualMachine::ReadFunctions(std::vector<std::pair<Operation, std::vect
 
         params.emplace_back(operands[i + 1], type);
       }
-
       FunctionContext fc;
-      fc.pos = pos;
       fc.paramsDeclaration = params;
       fc.functionName = functionName;
       functionTable[functionName] = fc;
       lastFunctionName = functionName;
-    } else if (operation == FUN_END) {
-    } else if (operation == LABEL) {
+
+      currentPos = 0;
+    } else if (op == LABEL) {
       const std::string& labelName = operands[0];
-      functionTable[lastFunctionName].labels[labelName] = pos;
+      functionTable[lastFunctionName].labels[labelName] = currentPos;
     }
+    functionTable[lastFunctionName].bytecode.emplace_back(op, operands);
+    currentPos++;
   }
 
   if (functionTable.find("main") == functionTable.end()) {
     std::cerr << "Function \"main\" doesn't exist" << std::endl;
     returnCode = -1;
-    return -1;
+    return;
   }
 
   StackFrame stackFrame;
-  stackFrame.calledPos = 10000000;
   stackFrame.functionContext = functionTable["main"];
   callStack.push(stackFrame);
-
-  return functionTable["main"].pos;
 }
 
-void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::string>>>& operations) {
-  currentLine = ReadFunctions(operations) + 1;
-
-  while (currentLine < operations.size()) {
-    auto& [operation, operands] = operations[currentLine];
-    // 13 -> 59
+void VirtualMachine::Execute() {
+  while (!callStack.empty()) {
+    int64_t currentLine = callStack.top().currentPos++;
+    auto& command = callStack.top().functionContext.bytecode[currentLine];
+    auto& operation = command.first;
+    auto& operands = command.second;
     switch (operation) {
       case (ADD): Add(operands); break;
       case (SUB): Sub(operands); break;
@@ -88,8 +84,6 @@ void VirtualMachine::Execute(std::vector<std::pair<Operation, std::vector<std::s
       case (FUN_END): break;
       case (LABEL): break;
     }
-
-    currentLine++;
   }
 }
 
@@ -269,14 +263,14 @@ void VirtualMachine::Cmp(std::vector<std::string>& operands) {
 void VirtualMachine::Jump(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   const std::string& label = operands[0];
-  currentLine = currentStackFrame.functionContext.labels[label];
+  callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
 }
 
 void VirtualMachine::JumpEQ(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   std::string label = operands[0];
   if (compareResult.EQ) {
-    currentLine = currentStackFrame.functionContext.labels[label];
+    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
   }
 }
 
@@ -284,7 +278,7 @@ void VirtualMachine::JumpNE(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   std::string label = operands[0];
   if (compareResult.NE) {
-    currentLine = currentStackFrame.functionContext.labels[label];
+    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
   }
 }
 
@@ -292,7 +286,7 @@ void VirtualMachine::JumpLT(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   std::string label = operands[0];
   if (compareResult.LT) {
-    currentLine = currentStackFrame.functionContext.labels[label];
+    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
   }
 }
 
@@ -300,7 +294,7 @@ void VirtualMachine::JumpLE(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   std::string label = operands[0];
   if (compareResult.LE) {
-    currentLine = currentStackFrame.functionContext.labels[label];
+    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
   }
 }
 
@@ -308,7 +302,7 @@ void VirtualMachine::JumpGT(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   std::string label = operands[0];
   if (compareResult.GT) {
-    currentLine = currentStackFrame.functionContext.labels[label];
+    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
   }
 }
 
@@ -316,7 +310,7 @@ void VirtualMachine::JumpGE(std::vector<std::string>& operands) {
   auto& currentStackFrame = callStack.top();
   std::string label = operands[0];
   if (compareResult.GE) {
-    currentLine = currentStackFrame.functionContext.labels[label];
+    callStack.top().currentPos = currentStackFrame.functionContext.labels[label];
   }
 }
 
@@ -350,27 +344,22 @@ void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
 
     currentStackFrame.operandStack.pop();
   }
-  newStackFrame.calledPos = currentLine;
+
   newStackFrame.functionContext = functionTable[functionName];
   callStack.push(newStackFrame);
-  currentLine = functionTable[functionName].pos;
 }
 
 void VirtualMachine::Return(std::vector<std::string>& operands) {
-  auto& currentStackFrame = callStack.top();
-  currentLine = callStack.top().calledPos;
+  auto currentStackFrame = callStack.top();
   int64_t returnedValue = currentStackFrame.operandStack.top();
+  callStack.pop();
+
   if (currentStackFrame.functionContext.functionName == "main") {
     returnCode = returnedValue;
     return;
   }
 
-  callStack.pop();
-  callStack.top().operandStack.push(returnedValue);
-}
-
-void VirtualMachine::FunBegin(std::vector<std::string>& operands) {
-}
-
-void VirtualMachine::FunEnd(std::vector<std::string>& operands) {
+  if (!callStack.empty()) {
+    callStack.top().operandStack.push(returnedValue);
+  }
 }

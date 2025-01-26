@@ -76,8 +76,8 @@ int main(int argc, const char** argv) {
 
     std::cout << '\n';
   }
-  VirtualMachine vm(100000);
-  vm.Execute(Bytecode);
+  VirtualMachine vm(100000, Bytecode);
+  vm.Execute();
   File.close();
 
   return vm.getReturnCode();
