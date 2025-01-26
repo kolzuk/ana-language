@@ -144,10 +144,16 @@ class ToBytecode : public ASTVisitor {
 
 
   void visit(WhileStatementAST& Node) override {
-    auto CondLabel = newLabel();
+    std::string CondLabel;
     auto AfterLabel = newLabel();
 
-    Builder.label(CondLabel);
+    if (Builder.getLastCommand().first == LABEL) {
+      CondLabel = Builder.getLastCommand().second[0];
+    } else {
+      CondLabel = newLabel();
+      Builder.label(CondLabel);
+    }
+
     Node.Condition->RHS->accept(*this);
     Node.Condition->LHS->accept(*this);
 

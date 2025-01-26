@@ -111,3 +111,7 @@ void BytecodeBuilder::jumpGt(const std::string& Label) {
 void BytecodeBuilder::jumpGe(const std::string& Label) {
   Bytecode.push_back({Operation::JUMP_GE, {Label}});
 }
+
+std::pair<Operation, std::vector<std::string>> BytecodeBuilder::getLastCommand() {
+  return Bytecode.back();
+}

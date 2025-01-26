@@ -43,6 +43,8 @@ class BytecodeBuilder {
   void jumpLe(const std::string& Label);
   void jumpGt(const std::string& Label);
   void jumpGe(const std::string& Label);
+
+  std::pair<Operation, std::vector<std::string>> getLastCommand();
 };
 
 #endif //BYTECODEBUILDER_H_
