@@ -50,10 +50,6 @@ VirtualMachine::VirtualMachine(int64_t heapSize, const Bytecode& bytecode)
 void VirtualMachine::Execute() {
   while (!callStack.empty()) {
     int64_t currentLine = callStack.back().currentPos++;
-    profilingContext.allIterationCount++;
-    if (profilingContext.allIterationCount % profilingContext.garbageCollectorIterationThreshold == 0) {
-      garbageCollector->CollectGarbage();
-    }
 
     auto& command = callStack.back().functionContext.bytecode[currentLine];
     auto& operation = command.first;
@@ -338,7 +334,15 @@ void VirtualMachine::NewArray(std::vector<std::string>& operands) {
 
   int64_t arrayPtr = heap.AllocateMemory(arraySize);
   if (arrayPtr == -1) {
-    EmergencyTermination();
+    garbageCollector->CollectGarbage();
+    arrayPtr = heap.AllocateMemory(arraySize);
+
+    if (arrayPtr == -1) {
+      std::cerr << "Can't allocate memory: don't have a enough space" << std::endl;
+      EmergencyTermination();
+    } else {
+      operandStack.push(arrayPtr);
+    }
     return;
   }
 

@@ -1,0 +1,86 @@
+fun pow(integer n, integer degree) -> integer {
+    integer result = 1;
+    for (integer i = 0; i < degree; i = i + 1) {
+        result = result * n;
+    }
+    return result;
+}
+
+fun checkItem(array arr, integer size, integer curr_node) -> integer {
+    integer result = arr[curr_node];
+    if (2 * curr_node + 1 < size) {
+        result = result + checkItem(arr, size, 2 * curr_node + 1) - checkItem(arr, size, 2 * curr_node + 2);
+    }
+
+    return result;
+}
+
+fun bottomUpTree(integer item, integer depth) -> array {
+    integer total_nodes = pow(2, depth + 1) - 1;
+    array tree = new array[total_nodes];
+    tree[0] = item;
+
+    for (integer current_node = 0; current_node < total_nodes; current_node = current_node + 1) {
+        integer curr_item = tree[current_node];
+        if (2 * current_node + 1 < total_nodes) {
+            tree[2 * current_node + 1] = 2 * curr_item - 1;
+        }
+        if (2 * current_node + 2 < total_nodes) {
+            tree[2 * current_node + 2] = 2 * curr_item;
+        }
+    }
+
+    return tree;
+}
+
+fun printArray(array arr, integer size) -> integer {
+    for (integer i = 0; i < size; i = i + 1) {
+       print arr[i];
+    }
+
+    return 0;
+}
+
+fun max(integer lhs, integer rhs) -> integer {
+    if (lhs >= rhs) {
+        return lhs;
+    }
+    return rhs;
+}
+
+fun check() -> integer {
+    integer ret = 0;
+
+    for (integer n = 4; n <= 7; n = n + 1) {
+        integer min_depth = 4;
+        integer max_depth = max(min_depth + 2, n);
+        integer stretch_depth = max_depth + 1;
+
+        array check_tree = bottomUpTree(0, stretch_depth);
+        integer check = checkItem(check_tree, pow(2, stretch_depth + 1) - 1, 0);
+
+        array long_lived_tree =  bottomUpTree(0, max_depth);
+
+        for (integer depth = min_depth; depth <= max_depth; depth = depth + 2) {
+            integer iterations = pow(2, max_depth - depth + min_depth);
+
+            integer check = 0;
+            for (integer i = 1; i <= iterations; i = i + 1) {
+                array first_arr = bottomUpTree(i, depth);
+                check = check + checkItem(first_arr, pow(2, depth + 1) - 1, 0);
+
+                array second_arr = bottomUpTree(-i, depth);
+                check = check + checkItem(second_arr, pow(2, depth + 1) - 1, 0);
+            }
+        }
+
+        ret = ret + checkItem(long_lived_tree, pow(2, max_depth + 1) - 1, 0);
+    }
+
+    return ret;
+}
+
+fun main() -> integer {
+    print check();
+    return 0;
+}

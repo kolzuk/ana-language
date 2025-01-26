@@ -1,6 +1,6 @@
 fun main() -> integer {
     for (integer i = 0; i < 1000; i = i + 1) {
-        array a = new array[10000];
+        array a = new array[100000];
         print a;
     }
 

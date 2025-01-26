@@ -41,7 +41,6 @@ struct Heap {
       it1 = it2 + 1;
     }
 
-    std::cerr << "Can't allocate memory: don't have a enough space" << std::endl;
     return -1;
   }
 

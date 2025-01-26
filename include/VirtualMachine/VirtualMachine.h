@@ -61,8 +61,7 @@ struct CompareResult {
 };
 
 struct ProfilingContext {
-  int64_t allIterationCount;
-  int64_t garbageCollectorIterationThreshold = 1000;
+  std::map<std::string, int64_t> functionCalls;
 };
 
 class VirtualMachine : public std::enable_shared_from_this<VirtualMachine>  {
