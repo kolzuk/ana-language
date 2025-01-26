@@ -3,31 +3,31 @@
 #include <string>
 #include <map>
 #include <queue>
-#include <set>
+#include <stack>
 #include <vector>
 
 static std::map<Operation, int> operationsStackUsage = {
-    {ADD, 2},
-    {SUB, 2},
-    {MUL, 2},
-    {DIV, 2},
-    {MOD, 2},
+    {ADD, 2}, // +
+    {SUB, 2}, // +
+    {MUL, 2}, // +
+    {DIV, 2}, // +
+    {MOD, 2}, // +
     {PUSH, 0},
     {INTEGER_LOAD, 0},
     {ARRAY_LOAD, 0},
     {LOAD_FROM_INDEX, 1},
-    {INTEGER_STORE, 1},
-    {ARRAY_STORE, 1},
-    {STORE_IN_INDEX, 1},
+    {INTEGER_STORE, 1},  // +
+    {ARRAY_STORE, 1},  // +
+    {STORE_IN_INDEX, 1},  // +
     {NEW_ARRAY, 1},
-    {PRINT, 1},
+    {PRINT, 1},  // +
     {FUN_BEGIN, 0},
     {FUN_END, 0},
     {FUN_CALL, 0},
-    {RETURN, 1},
+    {RETURN, 1}, // +
     {LABEL, 1},
     {JUMP, 0},
-    {CMP, 2},
+    {CMP, 2}, // +
     {JUMP_EQ, 0},
     {JUMP_NE, 0},
     {JUMP_LT, 0},
@@ -63,14 +63,12 @@ bool VariableStoringElimination(
 
 bool VariableEliminationInsideFunction(
     std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode,
-    std::vector<bool>& mask,
-    size_t begin,
-    size_t end) {
+    std::vector<bool>& mask) {
   bool isEliminated = false;
 
   std::string currentVariable;
   std::map<std::string, bool> uselessness;
-  for (size_t opIndex = begin; opIndex < end; opIndex++) {
+  for (size_t opIndex = 0; opIndex < bytecode.size(); opIndex++) {
     auto& [operation, operands] = bytecode[opIndex];
     if (operation == INTEGER_STORE || operation == ARRAY_STORE || operation == STORE_IN_INDEX) {
       currentVariable = operands[0];
@@ -81,7 +79,7 @@ bool VariableEliminationInsideFunction(
   }
 
   for (auto& [variable, isUseless] : uselessness) {
-    for (size_t opIndex = begin; opIndex < end; opIndex++) {
+    for (size_t opIndex = 0; opIndex < bytecode.size(); opIndex++) {
       auto& [operation, operands] = bytecode[opIndex];
       if (operation == INTEGER_LOAD || operation == ARRAY_LOAD || operation == LOAD_FROM_INDEX) {
         currentVariable = operands[0];
@@ -97,7 +95,7 @@ bool VariableEliminationInsideFunction(
     if (!uselessness[variable]) {
       continue;
     }
-    for (size_t opIndex = begin; opIndex < end; opIndex++) {
+    for (size_t opIndex = 0; opIndex < bytecode.size(); opIndex++) {
       auto& [operation, operands] = bytecode[opIndex];
       if (operation == INTEGER_STORE || operation == ARRAY_STORE || operation == STORE_IN_INDEX) {
         currentVariable = operands[0];
@@ -111,75 +109,14 @@ bool VariableEliminationInsideFunction(
   return isEliminated;
 }
 
-void VariableElimination(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode, std::vector<bool>& mask) {
-  std::string currentFunction;
-  size_t funcBeginIndex = 0;
-  bool isEliminated = true;
-  while (isEliminated) {
-    isEliminated = false;
-    for (size_t opIndex = 0; opIndex < bytecode.size(); opIndex++) {
-      auto& [operation, operands] = bytecode[opIndex];
-      if (operation == FUN_BEGIN && mask[opIndex]) {
-        funcBeginIndex = opIndex;
-      }
-      if (operation == FUN_END && mask[opIndex]) {
-        if (mask[funcBeginIndex]) {
-          isEliminated = isEliminated || VariableEliminationInsideFunction(bytecode, mask, funcBeginIndex, opIndex);
-        }
-      }
-    }
-  }
-}
-
-void FunctionElimination(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode, std::vector<bool>& mask) {
-  std::map<std::string, std::set<std::string>> allCalls;
-  std::string currentFunction;
-  std::map<std::string, int> usefulness;
-  for (size_t opIndex = 0; opIndex < bytecode.size(); opIndex++) {
-    auto& [operation, operands] = bytecode[opIndex];
-    if (operation == FUN_BEGIN) {
-      currentFunction = operands[0];
-      usefulness[currentFunction] = 0;
-    } else if (operation == FUN_CALL && mask[opIndex]) {
-      std::string functionName = operands[0];
-      allCalls[currentFunction].insert(functionName);
-    }
-  }
-
-  std::queue<std::string> checkFunctions;
-  checkFunctions.push("main");
-  while (!checkFunctions.empty()) {
-    currentFunction = checkFunctions.front();
-    usefulness[currentFunction]++;
-    checkFunctions.pop();
-    for (auto& function  : allCalls[currentFunction]) {
-      if (usefulness[function] == 0) {
-        checkFunctions.push(function);
-      }
-    }
-  }
-
-  bool isUseful = false;
-  for (size_t opIndex = 0; opIndex < bytecode.size(); opIndex++) {
-    auto& [operation, operands] = bytecode[opIndex];
-    if (operation == FUN_BEGIN) {
-      currentFunction = operands[0];
-      isUseful = usefulness[currentFunction] != 0;
-    }
-    if (!isUseful) {
-      mask[opIndex] = false;
-    }
-    if (operation == FUN_END) {
-      isUseful = false;
-    }
-  }
-
-}
-
 void DeadCodeElimination(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode) {
   std::vector<bool> mask = std::vector<bool>(bytecode.size(), true);
 
-  VariableElimination(bytecode, mask);
+  std::string currentFunction;
+  bool isEliminated = true;
+  while (isEliminated) {
+    isEliminated = VariableEliminationInsideFunction(bytecode, mask);
+  }
 
   std::vector<std::pair<Operation, std::vector<std::string>>> optimizedBytecode;
   for (size_t op_index = 0; op_index < bytecode.size(); op_index++) {
@@ -190,6 +127,203 @@ void DeadCodeElimination(std::vector<std::pair<Operation, std::vector<std::strin
   bytecode.swap(optimizedBytecode);
 }
 
+// {ADD, 2},
+// {SUB, 2},
+// {MUL, 2},
+// {DIV, 2},
+// {MOD, 2},
+// {PUSH, 0},
+
+
+int64_t Calculating(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode,
+                    std::vector<bool>& mask,
+                    size_t topIndex,
+                    size_t bottomIndex) {
+  std::stack<int64_t> stack;
+  size_t opIndex = topIndex;
+  int64_t lhs;
+  int64_t rhs;
+  while (opIndex < bottomIndex) {
+    auto& [operation, operands] = bytecode[opIndex];
+    mask[opIndex] = false;
+    switch (operation) {
+      case PUSH:
+        stack.push(std::stoll(operands[0]));
+        break;
+      case ADD:
+        rhs = stack.top();
+        stack.pop();
+        lhs = stack.top();
+        stack.pop();
+        stack.push(lhs + rhs);
+        break;
+      case SUB:
+        rhs = stack.top();
+        stack.pop();
+        lhs = stack.top();
+        stack.pop();
+        stack.push(lhs - rhs);
+        break;
+      case MUL:
+        rhs = stack.top();
+        stack.pop();
+        lhs = stack.top();
+        stack.pop();
+        stack.push(lhs * rhs);
+        break;
+      case DIV:
+        rhs = stack.top();
+        stack.pop();
+        lhs = stack.top();
+        stack.pop();
+        stack.push(lhs / rhs);
+        break;
+      case MOD:
+        rhs = stack.top();
+        stack.pop();
+        lhs = stack.top();
+        stack.pop();
+        stack.push(lhs % rhs);
+        break;
+    }
+    ++opIndex;
+  }
+  return stack.top();
+}
+
+bool checkFolding(
+    std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode,
+    size_t topIndex,
+    size_t bottomIndex)
+{
+  Operation operation;
+  for (size_t opIndex = topIndex; opIndex < bottomIndex; opIndex++) {
+    operation = bytecode[opIndex].first;
+    if (!(operation == ADD || operation == SUB || operation == MUL
+        || operation == DIV || operation == MOD || operation == PUSH)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool Folding(
+    std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode,
+    std::vector<bool>& mask,
+    size_t startIndex)
+{
+  bool toFold = false;
+  size_t opIndex;
+  size_t bottomIndex = startIndex;
+  Operation operation = bytecode[startIndex].first;
+  size_t remainingCount;
+  int64_t result;
+
+  size_t rounds = 1;
+  if (operation == CMP) {
+    rounds = 2;
+  }
+  for (size_t i = 0; i < rounds; ++i) {
+    opIndex = bottomIndex;
+    remainingCount = 1;
+    while (remainingCount > 0) {
+      --remainingCount;
+      --opIndex;
+      operation = bytecode[opIndex].first;
+      remainingCount += operationsStackUsage[operation];
+    }
+
+    if (checkFolding(bytecode, opIndex, bottomIndex)) {
+      toFold = true;
+      result = Calculating(bytecode, mask, opIndex, bottomIndex);
+      mask[bottomIndex - 1] = true;
+      bytecode[bottomIndex - 1] = std::make_pair(PUSH, std::vector<std::string>{std::to_string(result)});
+    }
+
+    bottomIndex = opIndex;
+  }
+  return toFold;
+}
+
+
+bool ConstantFolding(
+    std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode) {
+  std::vector<bool> mask = std::vector<bool>(bytecode.size(), true);
+  bool isFolded = false;
+
+  std::string currentVariable;
+  std::map<std::string, bool> uselessness;
+  for (size_t opIndex = 0; opIndex < bytecode.size(); opIndex++) {
+    auto& [operation, operands] = bytecode[opIndex];
+    if (operation == INTEGER_STORE || operation == ARRAY_STORE || operation == STORE_IN_INDEX
+        || operation == PRINT || operation == RETURN || operation == CMP) {
+      isFolded = Folding(bytecode, mask, opIndex);
+    }
+  }
+
+  std::vector<std::pair<Operation, std::vector<std::string>>> optimizedBytecode;
+  for (size_t op_index = 0; op_index < bytecode.size(); op_index++) {
+    if (mask[op_index]) {
+      optimizedBytecode.push_back(bytecode[op_index]);
+    }
+  }
+  bytecode.swap(optimizedBytecode);
+
+  return isFolded;
+}
+
+void ConstantPropagation(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode) {
+  // name -> (isUsed, value)
+  std::map<std::string, std::pair<bool, std::string>> declaredIntegers;
+
+  // Find constant variables
+  for (int64_t it = 0; it < bytecode.size() - 1; ++it) {
+    if (bytecode[it].first == PUSH && bytecode[it + 1].first == INTEGER_STORE) {
+      std::string name = bytecode[it + 1].second[0];
+      std::string value = bytecode[it].second[0];
+      declaredIntegers[name] = {false, value};
+      it++;
+    } else if (bytecode[it].first == INTEGER_STORE) {
+      std::string name = bytecode[it].second[0];
+      if (declaredIntegers.find(name) != declaredIntegers.end())
+        declaredIntegers[name].first = true;
+    }
+  }
+
+  // Delete variable usage
+  std::vector<std::pair<Operation, std::vector<std::string>>> optimizedBytecode;
+  for (int64_t it = 0; it < bytecode.size() - 1; ++it) {
+    if (bytecode[it].first == PUSH && bytecode[it + 1].first == INTEGER_STORE) {
+      std::string name = bytecode[it + 1].second[0];
+
+      if (declaredIntegers.find(name) != declaredIntegers.end() && !declaredIntegers[name].first) {
+        it++;
+        continue;
+      }
+    }
+
+    if (bytecode[it].first == INTEGER_LOAD) {
+      std::string name = bytecode[it].second[0];
+      if (declaredIntegers.find(name) != declaredIntegers.end() && !declaredIntegers[name].first) {
+        std::string value = declaredIntegers[name].second;
+        optimizedBytecode.push_back({PUSH, {value}});
+        continue;
+      }
+    }
+
+    optimizedBytecode.push_back(bytecode[it]);
+  }
+  optimizedBytecode.push_back(bytecode.back());
+  bytecode.swap(optimizedBytecode);
+}
+
 void Optimizer::optimize(std::vector<std::pair<Operation, std::vector<std::string>>>& bytecode) {
-  DeadCodeElimination(bytecode);
+  std::vector<std::pair<Operation, std::vector<std::string>>> oldByteCode = bytecode;
+  do {
+    oldByteCode = bytecode;
+    DeadCodeElimination(bytecode);
+    ConstantPropagation(bytecode);
+    ConstantFolding(bytecode);
+  } while (oldByteCode != bytecode);
 }

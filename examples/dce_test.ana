@@ -2,6 +2,8 @@ fun f() -> integer {
     integer a = 1;
     integer b = 2;
     integer c = a + b;
+    array k = new array[10];
+    integer d = a + b + c + k[0];
 
     return 0;
 }
