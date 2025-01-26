@@ -1,0 +1,11 @@
+fun printNumber(integer i) -> integer {
+    integer a = 0;
+    return 0;
+}
+
+fun main() -> integer {
+    for (integer i = 0; i < 1001; i = i + 1) {
+        printNumber(0);
+    }
+    return 0;
+}

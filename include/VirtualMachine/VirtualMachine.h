@@ -7,6 +7,7 @@
 
 #include <Bytecode/Bytecode.h>
 #include <VirtualMachine/Heap.h>
+#include <Optimizer/Optimizer.h>
 
 #include <vector>
 #include <string>
@@ -14,6 +15,7 @@
 #include <map>
 #include <iostream>
 #include <memory>
+#include <set>
 
 class VirtualMachine;
 
@@ -61,7 +63,9 @@ struct CompareResult {
 };
 
 struct ProfilingContext {
+  std::set<std::string> optimizedFunctions;
   std::map<std::string, int64_t> functionCalls;
+  int64_t callThreshold = 1000;
 };
 
 class VirtualMachine : public std::enable_shared_from_this<VirtualMachine>  {
