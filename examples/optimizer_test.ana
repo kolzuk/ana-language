@@ -1,0 +1,15 @@
+fun printNumber(integer i) -> integer {
+    integer a = 2;
+    integer b = 1;
+    integer c = 1;
+    array k = new array[10];
+    integer d = a + b + c + k[0];
+    return 0;
+}
+
+fun main() -> integer {
+    for (integer i = 0; i < 1002; i = i + 1) {
+        printNumber(0);
+    }
+    return 0;
+}

@@ -361,6 +361,24 @@ void VirtualMachine::CallFunction(std::vector<std::string>& operands) {
   StackFrame newStackFrame;
 
   std::string functionName = operands[0];
+  profilingContext.functionCalls[functionName]++;
+  if (profilingContext.optimizedFunctions.find(functionName) == profilingContext.optimizedFunctions.end()
+    && profilingContext.functionCalls[functionName] > profilingContext.callThreshold) {
+    auto& bytecode = functionTable[functionName].bytecode;
+    Optimizer::optimize(bytecode);
+
+    std::cout << "Function optimized: " << '\n';
+    for (int i = 0; i < bytecode.size(); ++i) {
+      std::cout << i << ' ' << ConvertOperationToString(bytecode[i].first) << ' ';
+      for (int j = 0; j < bytecode[i].second.size(); ++j) {
+        std::cout << bytecode[i].second[j] << ' ';
+      }
+
+      std::cout << '\n';
+    }
+    profilingContext.optimizedFunctions.insert(functionName);
+  }
+
   auto& params = functionTable[functionName].paramsDeclaration;
   for (auto& param : params) {
     if (param.second == INTEGER)

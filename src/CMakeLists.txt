@@ -4,6 +4,7 @@ add_executable(ana_language
         Lexer/Lexer.cpp
         Sema/Sema.cpp
         Optimizer/Optimizer.cpp
+        Bytecode/Bytecode.cpp
         Bytecode/BytecodeGenerator.cpp
         Bytecode/BytecodeBuilder.cpp
         VirtualMachine/VirtualMachine.cpp

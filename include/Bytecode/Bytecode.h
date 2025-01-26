@@ -111,4 +111,6 @@ enum Operation : char {
   JUMP_GE = 26
 };
 
+std::string ConvertOperationToString(Operation operation);
+
 #endif //BYTECODE_H
